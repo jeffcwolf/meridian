@@ -85,13 +85,23 @@ def upsert_entity(
         )
         row = conn.execute("SELECT id FROM entities WHERE lei = ?", (lei,)).fetchone()
     else:
-        conn.execute(
-            "INSERT INTO entities (name, lei, country) VALUES (?, NULL, ?)",
-            (name, country),
-        )
+        # No LEI (e.g. an issuer whose jurisdiction the index does not cover):
+        # key on (name, country) so re-runs stay idempotent.
         row = conn.execute(
             "SELECT id FROM entities WHERE name = ? AND lei IS NULL", (name,)
         ).fetchone()
+        if row is None:
+            conn.execute(
+                "INSERT INTO entities (name, lei, country) VALUES (?, NULL, ?)",
+                (name, country),
+            )
+            row = conn.execute(
+                "SELECT id FROM entities WHERE name = ? AND lei IS NULL", (name,)
+            ).fetchone()
+        else:
+            conn.execute(
+                "UPDATE entities SET country = ? WHERE id = ?", (country, row["id"])
+            )
     conn.commit()
     return int(row["id"])
 

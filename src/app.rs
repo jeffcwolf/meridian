@@ -47,8 +47,7 @@ pub fn App() -> impl IntoView {
                 <p>
                     "Data: "
                     <a href="https://filings.xbrl.org">"filings.xbrl.org"</a>
-                    " ESEF filing index · Entity data: "
-                    <a href="https://www.gleif.org">"GLEIF"</a>
+                    " ESEF filing index (entity, filing and XBRL-JSON data)"
                 </p>
             </footer>
         </Router>

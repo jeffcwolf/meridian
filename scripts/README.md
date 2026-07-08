@@ -5,8 +5,7 @@ cache the Rust/Leptos app reads. They fetch and parse ESEF filings from public
 sources and run offline / on a schedule — never at request time.
 
 ```
-filings.xbrl.org ─┐
-GLEIF ────────────┼─▶ Python scripts ─▶ data/meridian.db ─▶ Rust/Axum ─▶ Leptos
+filings.xbrl.org ─▶ Python scripts ─▶ data/meridian.db ─▶ Rust/Axum ─▶ Leptos
 ```
 
 ## Setup
@@ -21,13 +20,13 @@ uv sync
 | Script                | What it does                                                                 | Network |
 |-----------------------|------------------------------------------------------------------------------|---------|
 | `src/db.py`           | Schema + upsert helpers (shared). `uv run python src/db.py` just inits it.    | none    |
-| `src/fetch_filings.py`| Resolve a seed list of issuers to LEIs via GLEIF, then pull their filing metadata from filings.xbrl.org into `entities` + `filings`. | GLEIF, filings.xbrl.org |
+| `src/fetch_filings.py`| Scan each seed country's filings on filings.xbrl.org and match each seed name to the actual filer, populating `entities` + `filings`. | filings.xbrl.org |
 | `src/parse_xbrl_json.py`| Download each filing's XBRL-JSON extract and parse headline IFRS concepts into `financial_facts`. | filings.xbrl.org |
 | `src/seed_demo.py`    | Offline fixture: writes illustrative demo data so the web app can be run without any network access. | none |
 
 ## Usage
 
-Real data (needs outbound access to `api.gleif.org` and `filings.xbrl.org`):
+Real data (needs outbound access to `filings.xbrl.org`):
 
 ```bash
 uv run python src/fetch_filings.py      # entities + filings
@@ -53,10 +52,13 @@ as-is (`ifrs-full:Revenue`), currencies as ISO-4217 codes (`EUR`).
 
 ## Seed list
 
-`fetch_filings.py` seeds 10 well-known issuers across 7 countries (DE, FR, ES,
-DK, FI, IT, NL). LEIs are resolved from name + country at runtime; pin exact
-LEIs in `LEI_OVERRIDES` if GLEIF full-text picks the wrong entity, and edit the
-`SEED` list to change the universe.
+`fetch_filings.py` seeds ~39 large-cap issuers across 13 countries (NL, FR, ES,
+IT, DK, FI, SE, NO, BE, PT, AT, IE, DE). For each country it scans the filings
+index once and matches each seed name to the actual filer (most token overlap,
+then fewest extra tokens — so the listed parent beats subsidiaries), taking the
+LEI and canonical name from the index. German issuers are kept on purpose and
+resolve to no filings, surfacing the coverage gap. Edit `SEED` to change the
+universe.
 
 ## Parsed concepts
 

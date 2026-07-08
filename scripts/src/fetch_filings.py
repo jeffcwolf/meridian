@@ -2,99 +2,96 @@
 
 Pipeline step 1: populate the ``entities`` and ``filings`` tables in
 ``data/meridian.db`` from the public filings.xbrl.org API (via the
-``xbrl-filings-api`` wrapper), resolving each issuer's LEI through GLEIF.
+``xbrl-filings-api`` wrapper).
 
-Run locally (needs outbound access to api.gleif.org and filings.xbrl.org):
+Run locally (needs outbound access to filings.xbrl.org):
 
     cd scripts && uv run python src/fetch_filings.py
 
-The script is idempotent — re-running refreshes the same rows.
+Resolution strategy: rather than resolving names through GLEIF (whose
+full-text ranking surfaces subsidiaries and misses parents), we scan each
+country's filings on filings.xbrl.org and match each seed name to the actual
+*filer*. Only the listed parent files a consolidated ESEF annual report, so the
+filer entity is the one we want — and its LEI + canonical name come straight
+from the index.
 
 Note on coverage: filings.xbrl.org aggregates from participating national OAMs.
 Some jurisdictions — most notably Germany — do not publish their ESEF filings to
-the public index, so issuers there resolve to a valid LEI but return zero
-filings. Those issuers are kept on purpose to surface the coverage gap.
+the public index, so issuers there match nothing and are stored with no filings
+on purpose, to surface the coverage gap.
+
+The script is idempotent — re-running refreshes the same rows.
 """
 
 from __future__ import annotations
 
 import re
 import unicodedata
-import warnings
 from collections import defaultdict
 
-import httpx
 import xbrl_filings_api as xf
-from xbrl_filings_api.exceptions import FilterNotSupportedWarning
+from xbrl_filings_api.exceptions import FilingsAPIError
 
 import db
 
 # ---------------------------------------------------------------------------
-# Curated universe: ~39 large-cap issuers across 12 countries. The German names
+# Curated universe: ~39 large-cap issuers across 13 countries. The German names
 # are included deliberately to demonstrate the filings.xbrl.org coverage gap.
-# LEIs are resolved from name + country at runtime (see resolve_lei); pin any
-# that resolve to the wrong entity in LEI_OVERRIDES below.
 # ---------------------------------------------------------------------------
 SEED: list[dict[str, str]] = [
     # Netherlands
-    {"name": "ASML Holding NV", "country": "NL"},
-    {"name": "Koninklijke Philips NV", "country": "NL"},
-    {"name": "Heineken NV", "country": "NL"},
-    {"name": "ING Groep NV", "country": "NL"},
-    {"name": "Koninklijke Ahold Delhaize NV", "country": "NL"},
+    {"name": "ASML Holding", "country": "NL"},
+    {"name": "Koninklijke Philips", "country": "NL"},
+    {"name": "Heineken", "country": "NL"},
+    {"name": "ING Groep", "country": "NL"},
+    {"name": "Koninklijke Ahold Delhaize", "country": "NL"},
     # France
     {"name": "LVMH Moet Hennessy Louis Vuitton", "country": "FR"},
-    {"name": "TotalEnergies SE", "country": "FR"},
+    {"name": "TotalEnergies", "country": "FR"},
     {"name": "Sanofi", "country": "FR"},
-    {"name": "Schneider Electric SE", "country": "FR"},
+    {"name": "Schneider Electric", "country": "FR"},
     # Spain
-    {"name": "Iberdrola SA", "country": "ES"},
-    {"name": "Banco Santander SA", "country": "ES"},
-    {"name": "Industria de Diseno Textil SA", "country": "ES"},
-    {"name": "Telefonica SA", "country": "ES"},
+    {"name": "Iberdrola", "country": "ES"},
+    {"name": "Banco Santander", "country": "ES"},
+    {"name": "Industria de Diseno Textil", "country": "ES"},
+    {"name": "Telefonica", "country": "ES"},
     # Italy
-    {"name": "Enel SpA", "country": "IT"},
-    {"name": "Eni SpA", "country": "IT"},
-    {"name": "Intesa Sanpaolo SpA", "country": "IT"},
-    {"name": "UniCredit SpA", "country": "IT"},
+    {"name": "Enel", "country": "IT"},
+    {"name": "Eni", "country": "IT"},
+    {"name": "Intesa Sanpaolo", "country": "IT"},
+    {"name": "UniCredit", "country": "IT"},
     # Denmark
-    {"name": "Novo Nordisk A/S", "country": "DK"},
-    {"name": "Carlsberg A/S", "country": "DK"},
-    {"name": "Vestas Wind Systems A/S", "country": "DK"},
+    {"name": "Novo Nordisk", "country": "DK"},
+    {"name": "Carlsberg", "country": "DK"},
+    {"name": "Vestas Wind Systems", "country": "DK"},
     # Finland
-    {"name": "Nokia Oyj", "country": "FI"},
-    {"name": "Kone Oyj", "country": "FI"},
-    {"name": "Neste Oyj", "country": "FI"},
-    {"name": "Nordea Bank Abp", "country": "FI"},
+    {"name": "Nokia", "country": "FI"},
+    {"name": "Kone", "country": "FI"},
+    {"name": "Neste", "country": "FI"},
+    {"name": "Nordea Bank", "country": "FI"},
     # Sweden
     {"name": "Telefonaktiebolaget LM Ericsson", "country": "SE"},
-    {"name": "Atlas Copco AB", "country": "SE"},
-    {"name": "Hennes & Mauritz AB", "country": "SE"},
-    {"name": "Investor AB", "country": "SE"},
+    {"name": "Atlas Copco", "country": "SE"},
+    {"name": "Hennes & Mauritz", "country": "SE"},
+    {"name": "Investor", "country": "SE"},
     # Norway
-    {"name": "Equinor ASA", "country": "NO"},
-    {"name": "DNB Bank ASA", "country": "NO"},
+    {"name": "Equinor", "country": "NO"},
+    {"name": "DNB Bank", "country": "NO"},
     # Belgium
-    {"name": "Anheuser-Busch InBev SA/NV", "country": "BE"},
-    {"name": "KBC Group NV", "country": "BE"},
+    {"name": "Anheuser-Busch InBev", "country": "BE"},
+    {"name": "KBC Group", "country": "BE"},
     # Portugal
-    {"name": "EDP - Energias de Portugal SA", "country": "PT"},
+    {"name": "EDP Energias de Portugal", "country": "PT"},
     # Austria
-    {"name": "OMV AG", "country": "AT"},
+    {"name": "OMV", "country": "AT"},
     # Ireland
-    {"name": "Ryanair Holdings plc", "country": "IE"},
+    {"name": "Ryanair Holdings", "country": "IE"},
     # Germany (kept to demonstrate the coverage gap — expect zero filings)
-    {"name": "SAP SE", "country": "DE"},
-    {"name": "Siemens AG", "country": "DE"},
-    {"name": "Volkswagen AG", "country": "DE"},
-    {"name": "Allianz SE", "country": "DE"},
+    {"name": "SAP", "country": "DE"},
+    {"name": "Siemens", "country": "DE"},
+    {"name": "Volkswagen", "country": "DE"},
+    {"name": "Allianz", "country": "DE"},
 ]
-
-# Pin an exact LEI here if GLEIF resolves a name to the wrong entity,
-# e.g. {"Siemens AG": "W38RGI023SG3JQ7VG076"}. Empty by default.
-LEI_OVERRIDES: dict[str, str] = {}
-
-GLEIF_URL = "https://api.gleif.org/api/v1/lei-records"
 
 # Legal-form and generic words dropped before matching, so the distinctive part
 # of a company name drives resolution.
@@ -113,56 +110,11 @@ def _normalize(text: str) -> str:
     return "".join(c for c in decomposed if not unicodedata.combining(c)).lower()
 
 
-def _significant_tokens(name: str) -> set[str]:
+def _tokens(name: str) -> set[str]:
     """Distinctive lower-cased name tokens (no punctuation, legal forms, or
     single characters)."""
     cleaned = re.sub(r"[^a-z0-9]+", " ", _normalize(name))
     return {t for t in cleaned.split() if len(t) > 1 and t not in STOPWORDS}
-
-
-def resolve_lei(client: httpx.Client, name: str, country: str) -> tuple[str | None, str]:
-    """Resolve an issuer to (LEI, canonical legal name) via the GLEIF API.
-
-    Candidates are scored by token overlap first, then by fewest *extra* tokens
-    — so the listed parent (e.g. "Siemens Aktiengesellschaft") beats a
-    same-prefixed subsidiary (e.g. "Siemens Healthineers AG"). Returns
-    ``(None, name)`` if no confident match is found.
-    """
-    if name in LEI_OVERRIDES:
-        return LEI_OVERRIDES[name], name
-
-    params = {
-        "filter[fulltext]": name,
-        "filter[entity.legalAddress.country]": country,
-        "page[size]": "20",
-    }
-    try:
-        resp = client.get(GLEIF_URL, params=params, timeout=30.0)
-        resp.raise_for_status()
-    except httpx.HTTPError as exc:
-        print(f"  ! GLEIF lookup failed for {name}: {exc}")
-        return None, name
-
-    want = _significant_tokens(name)
-    best: tuple[tuple[int, int], str, str] | None = None  # ((overlap, -extra), lei, name)
-    for rec in resp.json().get("data", []):
-        attrs = rec.get("attributes", {})
-        lei = attrs.get("lei")
-        legal_name = (attrs.get("entity", {}).get("legalName", {}).get("name") or "")
-        if not lei:
-            continue
-        cand = _significant_tokens(legal_name)
-        overlap = len(want & cand)
-        if overlap == 0:
-            continue
-        score = (overlap, -len(cand - want))
-        if best is None or score > best[0]:
-            best = (score, lei, legal_name)
-
-    if best is None:
-        print(f"  ! No confident GLEIF match for {name} ({country})")
-        return None, name
-    return best[1], best[2]
 
 
 def _validation_count(filing: xf.Filing) -> int:
@@ -216,93 +168,84 @@ def _annual_only(filings: list[xf.Filing]) -> list[xf.Filing]:
     return [f for _, (_, f) in sorted(best_by_year.items())]
 
 
-def _country_scan_by_name(name: str, country: str) -> list[xf.Filing]:
-    """Fallback: scan a country's filings and match by entity name tokens."""
-    want = _significant_tokens(name)
-    matched: list[xf.Filing] = []
-    filings = xf.get_filings(
-        filters={"country": country},
-        sort="-last_end_date",
-        limit=0,
-        flags=xf.GET_ENTITY | xf.GET_VALIDATION_MESSAGES,
-    )
+def _best_match(seed_name: str, filers: dict[str, tuple[str, list]]) -> str | None:
+    """Pick the filer LEI best matching a seed name: most token overlap, then
+    fewest extra tokens (parent over subsidiary), then most filings.
+    """
+    want = _tokens(seed_name)
+    best: tuple[tuple[int, int, int], str] | None = None
+    for lei, (name, flist) in filers.items():
+        cand = _tokens(name)
+        overlap = len(want & cand)
+        if overlap == 0:
+            continue
+        score = (overlap, -len(cand - want), len(flist))
+        if best is None or score > best[0]:
+            best = (score, lei)
+    return best[1] if best else None
+
+
+def _scan_country(country: str) -> dict[str, tuple[str, list]]:
+    """Return {LEI: (entity_name, [filings])} for every filer in a country."""
+    filers: dict[str, list] = defaultdict(lambda: ["", []])
+    try:
+        filings = xf.get_filings(
+            filters={"country": country},
+            sort="-last_end_date",
+            limit=0,
+            flags=xf.GET_ENTITY | xf.GET_VALIDATION_MESSAGES,
+        )
+    except FilingsAPIError as exc:
+        print(f"  ! API error scanning {country}: {exc}")
+        return {}
     for filing in filings:
         ent = filing.entity
-        if ent and want & _significant_tokens(ent.name or ""):
-            matched.append(filing)
-    return matched
+        if not ent or not ent.identifier:
+            continue
+        record = filers[ent.identifier]
+        record[0] = ent.name or record[0]
+        record[1].append(filing)
+    return {lei: (name, flist) for lei, (name, flist) in filers.items()}
 
 
 def main() -> None:
     conn = db.connect()
     db.init_db(conn)
 
-    # 1. Resolve LEIs and upsert entities.
-    resolved: list[dict] = []
-    with httpx.Client(headers={"Accept": "application/vnd.api+json"}) as client:
-        for seed in SEED:
-            lei, legal_name = resolve_lei(client, seed["name"], seed["country"])
-            entity_id = db.upsert_entity(conn, legal_name, lei, seed["country"])
-            resolved.append(
-                {**seed, "lei": lei, "legal_name": legal_name, "entity_id": entity_id}
-            )
-            print(f"  {legal_name[:45]:45} {seed['country']}  LEI={lei}")
+    by_country: dict[str, list[dict]] = defaultdict(list)
+    for seed in SEED:
+        by_country[seed["country"]].append(seed)
 
-    # 2. Fetch filings for all resolved LEIs in one multi-filter query, grouped
-    #    back to their entity.
-    leis = [r["lei"] for r in resolved if r["lei"]]
-    by_lei = {r["lei"]: r["entity_id"] for r in resolved if r["lei"]}
-    per_entity: dict[int, list[xf.Filing]] = defaultdict(list)
-    if leis:
-        with warnings.catch_warnings():
-            # entity.identifier is a valid server-side filter even though the
-            # wrapper flags it as "unsupported" locally.
-            warnings.simplefilter("ignore", FilterNotSupportedWarning)
-            filings = xf.get_filings(
-                filters={"entity.identifier": leis},
-                sort="-last_end_date",
-                limit=0,
-                flags=xf.GET_ENTITY | xf.GET_VALIDATION_MESSAGES,
-            )
-        for filing in filings:
-            ent = filing.entity
-            lei = ent.identifier if ent else filing.entity_api_id
-            entity_id = by_lei.get(lei)
-            if entity_id is not None:
-                per_entity[entity_id].append(filing)
-
-    # 3. Fallback for any seed with no filings: scan its country, match by name.
-    for r in resolved:
-        if per_entity.get(r["entity_id"]):
-            continue
-        print(f"  ~ no LEI-matched filings for {r['legal_name']}; scanning {r['country']}")
-        for filing in _country_scan_by_name(r["name"], r["country"]):
-            ent = filing.entity
-            if ent and ent.identifier and not r["lei"]:
-                conn.execute(
-                    "UPDATE entities SET lei = ? WHERE id = ?",
-                    (ent.identifier, r["entity_id"]),
-                )
-                conn.commit()
-            per_entity[r["entity_id"]].append(filing)
-
-    # 4. Reduce to one annual per year and store.
-    total = 0
-    for entity_id, flist in per_entity.items():
-        for filing in _annual_only(flist):
-            _store_filing(conn, entity_id, filing)
-            total += 1
+    matched = 0
+    gaps = 0
+    for country in sorted(by_country):
+        seeds = by_country[country]
+        print(f"Scanning {country} ({len(seeds)} seeds)…")
+        filers = _scan_country(country)
+        print(f"  {len(filers)} filers in the index")
+        used: set[str] = set()
+        for seed in seeds:
+            lei = _best_match(seed["name"], filers)
+            if lei and lei not in used:
+                used.add(lei)
+                name, flist = filers[lei]
+                entity_id = db.upsert_entity(conn, name, lei, country)
+                annual = _annual_only(flist)
+                for filing in annual:
+                    _store_filing(conn, entity_id, filing)
+                matched += 1
+                print(f"    {name[:44]:44} {len(annual):>2} filings  {lei}")
+            else:
+                db.upsert_entity(conn, seed["name"], None, country)
+                gaps += 1
+                print(f"    {seed['name'][:44]:44}  no discoverable filings")
 
     n_entities = conn.execute("SELECT COUNT(*) AS n FROM entities").fetchone()["n"]
     n_filings = conn.execute("SELECT COUNT(*) AS n FROM filings").fetchone()["n"]
-    n_empty = conn.execute(
-        "SELECT COUNT(*) AS n FROM entities e "
-        "WHERE NOT EXISTS (SELECT 1 FROM filings f WHERE f.entity_id = e.id)"
-    ).fetchone()["n"]
     conn.close()
     print(
-        f"\nDone: {n_entities} entities ({n_empty} with no discoverable filings), "
-        f"{n_filings} filings in {db.DB_PATH}"
+        f"\nDone: {n_entities} entities ({matched} matched, {gaps} with no "
+        f"discoverable filings), {n_filings} filings in {db.DB_PATH}"
     )
 
 

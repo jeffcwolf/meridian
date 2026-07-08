@@ -11,8 +11,7 @@ comparison is trivial. See [`SPEC.md`](SPEC.md) for the full product spec.
 ## Architecture
 
 ```
-filings.xbrl.org ─┐
-GLEIF ────────────┼─▶ Python scripts ─▶ data/meridian.db ─▶ Rust/Axum ─▶ Leptos
+filings.xbrl.org ─▶ Python scripts ─▶ data/meridian.db ─▶ Rust/Axum ─▶ Leptos
 ```
 
 - **Python data scripts** (`scripts/`, uv-managed) fetch and parse data offline
@@ -25,7 +24,7 @@ GLEIF ────────────┼─▶ Python scripts ─▶ data/m
 
 The first end-to-end slice of the [SPEC](SPEC.md) build sequence:
 
-1. `fetch_filings.py` — seed issuers → LEIs (GLEIF) → filing metadata (filings.xbrl.org)
+1. `fetch_filings.py` — match seed issuers to their filer in the filings.xbrl.org index → entity + filing metadata
 2. `parse_xbrl_json.py` — XBRL-JSON extracts → headline IFRS facts
 3. A Leptos + Axum app with two pages:
    - **Search** — every seeded company with country, filing count, and years
