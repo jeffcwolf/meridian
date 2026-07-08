@@ -7,18 +7,37 @@ use rusqlite::{Connection, OptionalExtension};
 
 use crate::model::{CompanyDetail, CompanySummary, ConceptRow, FilingRow};
 
-/// The headline IFRS concepts surfaced in the single-company viewer, in the
-/// order they appear in the table, paired with human-readable labels.
-const CONCEPTS: [(&str, &str); 5] = [
-    ("ifrs-full:Revenue", "Revenue"),
-    ("ifrs-full:ProfitLoss", "Profit (loss) for the period"),
-    ("ifrs-full:Assets", "Total assets"),
-    ("ifrs-full:Equity", "Total equity"),
+/// Headline IFRS rows in display order: a label plus the accepted concept tags
+/// (primary first). Issuers tag the same line differently, so each row coalesces
+/// across its aliases, preferring the primary tag.
+const CONCEPTS: [(&str, &[&str]); 5] = [
     (
-        "ifrs-full:CashFlowsFromUsedInOperatingActivities",
+        "Revenue",
+        &[
+            "ifrs-full:Revenue",
+            "ifrs-full:RevenueFromContractsWithCustomers",
+        ],
+    ),
+    ("Profit (loss) for the period", &["ifrs-full:ProfitLoss"]),
+    ("Total assets", &["ifrs-full:Assets"]),
+    (
+        "Total equity",
+        &[
+            "ifrs-full:Equity",
+            "ifrs-full:EquityAttributableToOwnersOfParent",
+        ],
+    ),
+    (
         "Cash flow from operating activities",
+        &["ifrs-full:CashFlowsFromUsedInOperatingActivities"],
     ),
 ];
+
+/// SQL expression mapping a `reporting_date` to its fiscal year — the year of
+/// the date six months before period end. This keeps 52/53-week retail filers
+/// (whose year-end drifts across Dec/Jan) and January year-ends aligned, and
+/// avoids two of one issuer's year-ends landing in the same column.
+const FISCAL_YEAR: &str = "strftime('%Y', reporting_date, '-182 days')";
 
 fn db_path() -> String {
     std::env::var("MERIDIAN_DB").unwrap_or_else(|_| "data/meridian.db".to_string())
@@ -36,8 +55,8 @@ pub fn list_companies(query: Option<&str>) -> rusqlite::Result<Vec<CompanySummar
     let mut stmt = conn.prepare(
         "SELECT e.id, e.name, e.country, e.lei,
                 COUNT(f.id) AS filing_count,
-                MIN(substr(f.reporting_date, 1, 4)) AS first_year,
-                MAX(substr(f.reporting_date, 1, 4)) AS last_year
+                MIN(strftime('%Y', f.reporting_date, '-182 days')) AS first_year,
+                MAX(strftime('%Y', f.reporting_date, '-182 days')) AS last_year
          FROM entities e
          LEFT JOIN filings f ON f.entity_id = e.id
          WHERE (?1 IS NULL
@@ -101,54 +120,56 @@ pub fn get_company(id: i64) -> rusqlite::Result<Option<CompanyDetail>> {
         })?
         .collect::<rusqlite::Result<_>>()?;
 
-    // Distinct reporting years, most recent first.
-    let mut years: Vec<String> = filings
-        .iter()
-        .filter_map(|f| f.reporting_date.as_deref())
-        .map(|d| d.chars().take(4).collect::<String>())
-        .collect();
-    years.sort();
-    years.dedup();
-    years.reverse();
+    // Distinct fiscal years present in the filings, most recent first.
+    let mut ystmt = conn.prepare(&format!(
+        "SELECT DISTINCT {FISCAL_YEAR} AS fy FROM filings
+         WHERE entity_id = ?1 AND reporting_date IS NOT NULL
+         ORDER BY fy DESC"
+    ))?;
+    let years: Vec<String> = ystmt
+        .query_map([id], |r| r.get::<_, String>(0))?
+        .collect::<rusqlite::Result<_>>()?;
 
-    // (concept, year) -> (value, currency)
-    let mut xstmt = conn.prepare(
-        "SELECT concept, substr(reporting_date, 1, 4) AS y, value, currency
-         FROM financial_facts WHERE entity_id = ?1",
-    )?;
+    // (concept, fiscal_year) -> value; currency is taken from the first fact seen.
+    let mut xstmt = conn.prepare(&format!(
+        "SELECT concept, {FISCAL_YEAR} AS fy, value, currency
+         FROM financial_facts WHERE entity_id = ?1"
+    ))?;
     let mut facts: HashMap<(String, String), String> = HashMap::new();
     let mut currency: Option<String> = None;
     let rows = xstmt.query_map([id], |r| {
         Ok((
             r.get::<_, String>(0)?,
-            r.get::<_, String>(1)?,
+            r.get::<_, Option<String>>(1)?,
             r.get::<_, Option<String>>(2)?,
             r.get::<_, Option<String>>(3)?,
         ))
     })?;
     for row in rows {
-        let (concept, year, value, ccy) = row?;
+        let (concept, fy, value, ccy) = row?;
         if currency.is_none() {
             currency = ccy;
         }
-        if let Some(v) = value {
-            facts.insert((concept, year), v);
+        if let (Some(fy), Some(v)) = (fy, value) {
+            facts.insert((concept, fy), v);
         }
     }
 
+    // Build each row, coalescing across the concept's aliases (primary first).
     let rows = CONCEPTS
         .iter()
-        .map(|(concept, label)| {
+        .map(|(label, concepts)| {
             let cells = years
                 .iter()
                 .map(|y| {
-                    facts
-                        .get(&(concept.to_string(), y.clone()))
+                    concepts
+                        .iter()
+                        .find_map(|c| facts.get(&((*c).to_string(), y.clone())))
                         .map(|v| fmt_millions(v))
                 })
                 .collect();
             ConceptRow {
-                concept: concept.to_string(),
+                concept: concepts[0].to_string(),
                 label: label.to_string(),
                 cells,
             }

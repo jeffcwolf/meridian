@@ -27,7 +27,8 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from collections import Counter, defaultdict
+from collections import defaultdict
+from datetime import date
 
 import xbrl_filings_api as xf
 from xbrl_filings_api.exceptions import FilingsAPIError
@@ -95,12 +96,14 @@ SEED: list[dict[str, str]] = [
 
 # Legal-form and generic words dropped before matching, so the distinctive part
 # of a company name drives resolution.
+# Only pure legal-form suffixes and articles are dropped. Distinctive words like
+# "bank", "group"/"groep" and "holding" are kept — they disambiguate the listed
+# parent from siblings (e.g. "ING Groep" vs "ING Bank").
 STOPWORDS = {
     "ag", "se", "sa", "spa", "nv", "oyj", "oy", "plc", "ab", "asa", "abp",
-    "kgaa", "sgps", "aktiengesellschaft", "aktiebolag", "holding", "holdings",
-    "group", "groep", "groupe", "gruppo", "co", "company", "corporation",
+    "kgaa", "aktiengesellschaft", "aktiebolag", "co", "company", "corporation",
     "corp", "inc", "ltd", "limited", "the", "and", "of", "publ", "societe",
-    "europeenne", "anonyme", "de", "del", "di", "van", "von", "het", "bank",
+    "europeenne", "anonyme", "de", "del", "di", "van", "von", "het",
 }
 
 
@@ -151,28 +154,36 @@ def _store_filing(conn, entity_id: int, filing: xf.Filing) -> None:
 
 
 def _annual_only(filings: list[xf.Filing]) -> list[xf.Filing]:
-    """Keep one annual filing per reporting year.
+    """Keep one annual filing per fiscal year.
 
     ESEF is an annual-report mandate, but the index also carries interim/quarterly
-    packages and duplicates. We infer the issuer's fiscal year-end as the most
-    common period-end month-day, keep only filings landing on it (dropping
-    off-cycle interims like a Q1 report), then take one per year with the newest
-    amendment winning ties. Works for non-December filers too.
+    packages and duplicates. Consecutive annual reports are ~12 months apart
+    whatever the exact year-end, while interims fall closer, so we sort by period
+    end and greedily keep a filing only when it is >= 300 days after the last one
+    kept. This drops off-cycle interims (e.g. a Q1 report) yet works for December,
+    January (retail) and 52/53-week fiscal calendars alike. Exact-date duplicates
+    collapse to the newest amendment first.
     """
-    dated = [(f, rd) for f in filings if (rd := _reporting_date(f))]
-    if not dated:
-        return []
-    year_end = Counter(rd[5:] for _, rd in dated).most_common(1)[0][0]  # "MM-DD"
-
-    best_by_year: dict[str, tuple[tuple[str, str], xf.Filing]] = {}
-    for filing, rd in dated:
-        if rd[5:] != year_end:
+    # Collapse exact-date duplicates/amendments, keeping the newest processed.
+    by_date: dict[str, xf.Filing] = {}
+    for filing in filings:
+        rd = _reporting_date(filing)
+        if not rd:
             continue
-        year = rd[:4]
-        key = (rd, str(getattr(filing, "processed_time", "") or ""))
-        if year not in best_by_year or key > best_by_year[year][0]:
-            best_by_year[year] = (key, filing)
-    return [f for _, (_, f) in sorted(best_by_year.items())]
+        prev = by_date.get(rd)
+        if prev is None or str(getattr(filing, "processed_time", "") or "") >= str(
+            getattr(prev, "processed_time", "") or ""
+        ):
+            by_date[rd] = filing
+
+    kept: list[xf.Filing] = []
+    last: date | None = None
+    for rd in sorted(by_date):
+        end = date.fromisoformat(rd)
+        if last is None or (end - last).days >= 300:
+            kept.append(by_date[rd])
+            last = end
+    return kept
 
 
 def _best_match(seed_name: str, filers: dict[str, tuple[str, list]]) -> str | None:

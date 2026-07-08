@@ -20,11 +20,17 @@ import httpx
 import db
 
 # Headline IFRS concepts we surface in the single-company viewer.
+# Headline concepts plus accepted aliases. Facts are stored as-is (the real
+# tag); the UI coalesces aliases into one row. Different issuers tag the same
+# line differently — e.g. some use RevenueFromContractsWithCustomers, and some
+# report only equity attributable to owners of the parent.
 TARGET_CONCEPTS: set[str] = {
     "ifrs-full:Revenue",
+    "ifrs-full:RevenueFromContractsWithCustomers",
     "ifrs-full:Assets",
     "ifrs-full:ProfitLoss",
     "ifrs-full:Equity",
+    "ifrs-full:EquityAttributableToOwnersOfParent",
     # The IFRS taxonomy element is "From(Used In)" — there is no plain
     # CashFlowsFromOperatingActivities element.
     "ifrs-full:CashFlowsFromUsedInOperatingActivities",
