@@ -29,12 +29,9 @@ DEMO: list[tuple[str, str, str, str, dict[int, dict[str, str]]]] = [
         2022: {"rev": "71968000000", "assets": "135335000000", "pl": "4409000000",
                "eq": "56289000000", "cfo": "8264000000"},
     }),
-    ("SAP SE", "5299007FMCAENG2ZLB13", "DE", "EUR", {
-        2023: {"rev": "31207000000", "assets": "70162000000", "pl": "5964000000",
-               "eq": "45581000000", "cfo": "6304000000"},
-        2022: {"rev": "30871000000", "assets": "68168000000", "pl": "1708000000",
-               "eq": "41952000000", "cfo": "4360000000"},
-    }),
+    # German issuers: valid LEI but no discoverable filings (coverage gap demo).
+    ("SAP SE", "5299007FMCAENG2ZLB13", "DE", "EUR", {}),
+    ("Volkswagen AG", "529900NNUPAGGOM1KL20", "DE", "EUR", {}),
     ("LVMH Moet Hennessy Louis Vuitton SE", "969500FIF7GLA1WEDL01", "FR", "EUR", {
         2023: {"rev": "86153000000", "assets": "147245000000", "pl": "15174000000",
                "eq": "76633000000", "cfo": "22851000000"},

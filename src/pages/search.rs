@@ -87,24 +87,32 @@ fn CompanyTable(companies: Vec<CompanySummary>) -> impl IntoView {
     }
 
     let count = companies.len();
+    let empty_count = companies.iter().filter(|c| c.filing_count == 0).count();
     let rows = companies
         .into_iter()
         .map(|c| {
             let href = format!("/company/{}", c.id);
-            let years = match (c.first_year.as_deref(), c.last_year.as_deref()) {
-                (Some(a), Some(b)) if a == b => a.to_string(),
-                (Some(a), Some(b)) => format!("{a}–{b}"),
-                _ => "—".to_string(),
+            let empty = c.filing_count == 0;
+            let years_cell = if empty {
+                view! { <span class="no-filings">"No discoverable filings"</span> }.into_any()
+            } else {
+                let years = match (c.first_year.as_deref(), c.last_year.as_deref()) {
+                    (Some(a), Some(b)) if a == b => a.to_string(),
+                    (Some(a), Some(b)) => format!("{a}–{b}"),
+                    _ => "—".to_string(),
+                };
+                view! { {years} }.into_any()
             };
+            let row_class = if empty { "row-empty" } else { "" };
             view! {
-                <tr>
+                <tr class=row_class>
                     <td class="col-name">
-                        <a href=href.clone()>{c.name}</a>
+                        <a href=href>{c.name}</a>
                         <span class="lei">{c.lei.unwrap_or_default()}</span>
                     </td>
                     <td class="col-country">{c.country.unwrap_or_else(|| "—".into())}</td>
                     <td class="num">{c.filing_count}</td>
-                    <td class="col-years">{years}</td>
+                    <td class="col-years">{years_cell}</td>
                 </tr>
             }
         })
@@ -125,6 +133,12 @@ fn CompanyTable(companies: Vec<CompanySummary>) -> impl IntoView {
             </table>
             <p class="caption">
                 {count}" companies · Source: filings.xbrl.org ESEF index"
+                {(empty_count > 0)
+                    .then(|| {
+                        format!(
+                            " · {empty_count} in jurisdictions the index does not cover (e.g. Germany)"
+                        )
+                    })}
             </p>
         </div>
     }

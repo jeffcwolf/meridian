@@ -64,6 +64,7 @@ fn CompanyView(company: CompanyDetail) -> impl IntoView {
     } = company;
 
     let ccy = currency.clone().unwrap_or_else(|| "—".into());
+    let has_filings = !filings.is_empty();
     let has_financials =
         !years.is_empty() && rows.iter().any(|r| r.cells.iter().any(Option::is_some));
 
@@ -132,42 +133,61 @@ fn CompanyView(company: CompanyDetail) -> impl IntoView {
                 </div>
             </header>
 
-            <section class="financials">
-                <h2>"IFRS financial highlights"</h2>
-                {if has_financials {
-                    view! {
-                        <div class="table-wrap">
-                            <table class="data-table financials-table">
-                                <thead>
-                                    <tr>
-                                        <th scope="col">"Concept"</th>
-                                        {year_headers}
-                                    </tr>
-                                </thead>
-                                <tbody>{concept_rows}</tbody>
-                            </table>
-                            <p class="caption">
-                                "Figures in " {ccy} " millions · Source: filings.xbrl.org XBRL-JSON extracts"
-                            </p>
-                        </div>
-                    }
-                        .into_any()
-                } else {
-                    view! {
-                        <p class="muted">
-                            "No parsed financial facts yet. Run "
-                            <code>"parse_xbrl_json.py"</code>
-                            " to populate them."
+            {if !has_filings {
+                view! {
+                    <section class="coverage-gap">
+                        <h2>"No discoverable filings"</h2>
+                        <p>
+                            "filings.xbrl.org has no ESEF filings indexed for this issuer. "
+                            "Several jurisdictions — most notably Germany — do not publish "
+                            "their ESEF filings to the public index, so no financial data is "
+                            "available here even though the company files under the mandate. "
+                            "Surfacing that gap is itself part of what Meridian is for."
                         </p>
-                    }
-                        .into_any()
-                }}
-            </section>
-
-            <section class="timeline-section">
-                <h2>"Filing timeline"</h2>
-                <ul class="timeline">{timeline}</ul>
-            </section>
+                    </section>
+                }
+                    .into_any()
+            } else {
+                view! {
+                    <section class="financials">
+                        <h2>"IFRS financial highlights"</h2>
+                        {if has_financials {
+                            view! {
+                                <div class="table-wrap">
+                                    <table class="data-table financials-table">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">"Concept"</th>
+                                                {year_headers}
+                                            </tr>
+                                        </thead>
+                                        <tbody>{concept_rows}</tbody>
+                                    </table>
+                                    <p class="caption">
+                                        "Figures in " {ccy}
+                                        " millions · Source: filings.xbrl.org XBRL-JSON extracts"
+                                    </p>
+                                </div>
+                            }
+                                .into_any()
+                        } else {
+                            view! {
+                                <p class="muted">
+                                    "No parsed financial facts yet. Run "
+                                    <code>"parse_xbrl_json.py"</code>
+                                    " to populate them."
+                                </p>
+                            }
+                                .into_any()
+                        }}
+                    </section>
+                    <section class="timeline-section">
+                        <h2>"Filing timeline"</h2>
+                        <ul class="timeline">{timeline}</ul>
+                    </section>
+                }
+                    .into_any()
+            }}
         </article>
     }
 }

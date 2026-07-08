@@ -408,6 +408,45 @@ main.container {
     color: var(--warn-fg);
 }
 
+/* ---- Coverage gap ---- */
+
+.data-table tbody tr.row-empty td {
+    color: var(--muted);
+}
+
+.data-table tbody tr.row-empty .col-name a {
+    color: var(--ink-soft);
+}
+
+.no-filings {
+    font-style: italic;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.coverage-gap {
+    margin-top: 1.5rem;
+    padding: 1.25rem 1.4rem;
+    background: var(--warn-bg);
+    border: 1px solid #e6d3b3;
+    border-left: 4px solid var(--gold);
+    border-radius: var(--radius);
+}
+
+.coverage-gap h2 {
+    margin: 0 0 0.4rem;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 1.05rem;
+    color: var(--warn-fg);
+}
+
+.coverage-gap p {
+    margin: 0;
+    max-width: 68ch;
+    color: var(--ink-soft);
+}
+
 /* ---- Empty / footer ---- */
 
 .empty {
