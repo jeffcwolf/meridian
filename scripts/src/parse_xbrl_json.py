@@ -25,7 +25,9 @@ TARGET_CONCEPTS: set[str] = {
     "ifrs-full:Assets",
     "ifrs-full:ProfitLoss",
     "ifrs-full:Equity",
-    "ifrs-full:CashFlowsFromOperatingActivities",
+    # The IFRS taxonomy element is "From(Used In)" — there is no plain
+    # CashFlowsFromOperatingActivities element.
+    "ifrs-full:CashFlowsFromUsedInOperatingActivities",
 }
 
 # xBRL-JSON built-in ("core") dimensions. A fact carrying *only* these is a

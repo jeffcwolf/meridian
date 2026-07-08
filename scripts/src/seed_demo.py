@@ -18,7 +18,7 @@ CONCEPTS = {
     "assets": "ifrs-full:Assets",
     "pl": "ifrs-full:ProfitLoss",
     "eq": "ifrs-full:Equity",
-    "cfo": "ifrs-full:CashFlowsFromOperatingActivities",
+    "cfo": "ifrs-full:CashFlowsFromUsedInOperatingActivities",
 }
 
 # name, LEI, country, currency, {year: {concept: value_in_full_currency_units}}

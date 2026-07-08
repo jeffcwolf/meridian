@@ -15,7 +15,7 @@ const CONCEPTS: [(&str, &str); 5] = [
     ("ifrs-full:Assets", "Total assets"),
     ("ifrs-full:Equity", "Total equity"),
     (
-        "ifrs-full:CashFlowsFromOperatingActivities",
+        "ifrs-full:CashFlowsFromUsedInOperatingActivities",
         "Cash flow from operating activities",
     ),
 ];

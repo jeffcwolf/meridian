@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 import xbrl_filings_api as xf
 from xbrl_filings_api.exceptions import FilingsAPIError
@@ -151,15 +151,22 @@ def _store_filing(conn, entity_id: int, filing: xf.Filing) -> None:
 
 
 def _annual_only(filings: list[xf.Filing]) -> list[xf.Filing]:
-    """Keep one filing per reporting year — the one with the latest period end
-    (the annual report), newest amendment winning ties. ESEF is an annual-report
-    mandate, so this drops interim/duplicate packages that would otherwise
-    collide on the same year column. Assumes calendar-year filers.
+    """Keep one annual filing per reporting year.
+
+    ESEF is an annual-report mandate, but the index also carries interim/quarterly
+    packages and duplicates. We infer the issuer's fiscal year-end as the most
+    common period-end month-day, keep only filings landing on it (dropping
+    off-cycle interims like a Q1 report), then take one per year with the newest
+    amendment winning ties. Works for non-December filers too.
     """
+    dated = [(f, rd) for f in filings if (rd := _reporting_date(f))]
+    if not dated:
+        return []
+    year_end = Counter(rd[5:] for _, rd in dated).most_common(1)[0][0]  # "MM-DD"
+
     best_by_year: dict[str, tuple[tuple[str, str], xf.Filing]] = {}
-    for filing in filings:
-        rd = _reporting_date(filing)
-        if not rd:
+    for filing, rd in dated:
+        if rd[5:] != year_end:
             continue
         year = rd[:4]
         key = (rd, str(getattr(filing, "processed_time", "") or ""))
