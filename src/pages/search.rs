@@ -1,0 +1,132 @@
+use leptos::prelude::*;
+use leptos_router::hooks::use_query_map;
+
+use crate::model::CompanySummary;
+
+/// Server function backing the search page. Runs the SQLite read on the server;
+/// on the client it is a network call.
+#[server(SearchCompanies)]
+pub async fn search_companies(q: Option<String>) -> Result<Vec<CompanySummary>, ServerFnError> {
+    let q = q.and_then(|s| {
+        let t = s.trim().to_string();
+        if t.is_empty() {
+            None
+        } else {
+            Some(t)
+        }
+    });
+    crate::data::list_companies(q.as_deref()).map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[component]
+pub fn SearchPage() -> impl IntoView {
+    let query = use_query_map();
+    // Current text in the box (owned String, empty when absent).
+    let current_q = move || query.with(|m| m.get("q").map(|s| s.to_string()).unwrap_or_default());
+    // The active filter, or None when blank.
+    let active_q = move || {
+        let s = current_q();
+        if s.trim().is_empty() {
+            None
+        } else {
+            Some(s)
+        }
+    };
+
+    // Blocking so results are rendered into the HTML on the server (works
+    // without client hydration and is search-engine friendly).
+    let companies = Resource::new_blocking(active_q, |q| async move { search_companies(q).await });
+
+    view! {
+        <section class="page-intro">
+            <h1>"European company filings"</h1>
+            <p class="muted">
+                "Search issuers that have filed under the ESEF mandate. Figures are drawn
+                 from the machine-readable XBRL-JSON extracts on filings.xbrl.org."
+            </p>
+            <form class="search-form" method="GET" action="/">
+                <input
+                    type="search"
+                    name="q"
+                    class="search-input"
+                    placeholder="Company name, country code, or LEI…"
+                    value=current_q
+                    autocomplete="off"
+                />
+                <button type="submit" class="btn">"Search"</button>
+            </form>
+        </section>
+
+        <Suspense fallback=move || {
+            view! { <p class="muted loading">"Loading companies…"</p> }
+        }>
+            {move || {
+                companies
+                    .get()
+                    .map(|result| match result {
+                        Ok(list) => view! { <CompanyTable companies=list /> }.into_any(),
+                        Err(e) => {
+                            view! { <p class="error">"Could not load companies: " {e.to_string()}</p> }
+                                .into_any()
+                        }
+                    })
+            }}
+        </Suspense>
+    }
+}
+
+#[component]
+fn CompanyTable(companies: Vec<CompanySummary>) -> impl IntoView {
+    if companies.is_empty() {
+        return view! {
+            <div class="empty">
+                <p>"No companies match your search."</p>
+            </div>
+        }
+        .into_any();
+    }
+
+    let count = companies.len();
+    let rows = companies
+        .into_iter()
+        .map(|c| {
+            let href = format!("/company/{}", c.id);
+            let years = match (c.first_year.as_deref(), c.last_year.as_deref()) {
+                (Some(a), Some(b)) if a == b => a.to_string(),
+                (Some(a), Some(b)) => format!("{a}–{b}"),
+                _ => "—".to_string(),
+            };
+            view! {
+                <tr>
+                    <td class="col-name">
+                        <a href=href.clone()>{c.name}</a>
+                        <span class="lei">{c.lei.unwrap_or_default()}</span>
+                    </td>
+                    <td class="col-country">{c.country.unwrap_or_else(|| "—".into())}</td>
+                    <td class="num">{c.filing_count}</td>
+                    <td class="col-years">{years}</td>
+                </tr>
+            }
+        })
+        .collect_view();
+
+    view! {
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">"Company"</th>
+                        <th scope="col">"Country"</th>
+                        <th scope="col" class="num">"Filings"</th>
+                        <th scope="col">"Years"</th>
+                    </tr>
+                </thead>
+                <tbody>{rows}</tbody>
+            </table>
+            <p class="caption">
+                {count}" companies · Source: filings.xbrl.org ESEF index"
+            </p>
+        </div>
+    }
+    .into_any()
+}

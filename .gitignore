@@ -24,8 +24,8 @@ data/*.json
 pkg/
 
 # Python scripts
-scripts/__pycache__/
-scripts/*.py[cod]
+__pycache__/
+*.py[cod]
 scripts/.venv/
 
 # OS

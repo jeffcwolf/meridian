@@ -1,0 +1,50 @@
+//! Data structures shared between the SSR data layer and the UI. These cross
+//! the server-function boundary, so they must be (de)serializable and available
+//! in both the `ssr` and `hydrate` builds.
+
+use serde::{Deserialize, Serialize};
+
+/// One row on the search page: a company plus a summary of its filings.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CompanySummary {
+    pub id: i64,
+    pub name: String,
+    pub country: Option<String>,
+    pub lei: Option<String>,
+    pub filing_count: i64,
+    pub first_year: Option<String>,
+    pub last_year: Option<String>,
+}
+
+/// One filing in a company's timeline.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct FilingRow {
+    pub reporting_date: Option<String>,
+    pub country: Option<String>,
+    pub filing_url: Option<String>,
+    pub xbrl_json_url: Option<String>,
+    pub validation_message_count: i64,
+}
+
+/// One IFRS concept row in the financials table, with a formatted cell per year.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ConceptRow {
+    pub concept: String,
+    pub label: String,
+    /// Aligned to [`CompanyDetail::years`]; `None` where the concept is absent.
+    pub cells: Vec<Option<String>>,
+}
+
+/// Everything the company detail page needs.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CompanyDetail {
+    pub id: i64,
+    pub name: String,
+    pub country: Option<String>,
+    pub lei: Option<String>,
+    pub currency: Option<String>,
+    /// Reporting years, most recent first — the financials table columns.
+    pub years: Vec<String>,
+    pub rows: Vec<ConceptRow>,
+    pub filings: Vec<FilingRow>,
+}
