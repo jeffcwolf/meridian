@@ -1,0 +1,32 @@
+# Rust
+target/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Data caches (populated by Python scripts, read by Rust app)
+data/*.db
+data/*.sqlite
+data/*.json
+!data/.gitkeep
+
+# Leptos build artifacts
+pkg/
+
+# Python scripts
+scripts/__pycache__/
+scripts/*.py[cod]
+scripts/.venv/
+
+# OS
+Thumbs.db
