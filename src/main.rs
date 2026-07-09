@@ -8,7 +8,8 @@ async fn main() {
     use meridian::app::{shell, App};
     use meridian::export;
 
-    let conf = leptos::config::get_configuration(None).unwrap();
+    let conf = leptos::config::get_configuration(None)
+        .expect("Leptos configuration is valid (from Cargo.toml metadata / env)");
     let addr = conf.leptos_options.site_addr;
     let leptos_options = conf.leptos_options;
     let routes = generate_route_list(App);
@@ -24,10 +25,12 @@ async fn main() {
         .with_state(leptos_options);
 
     log!("Meridian listening on http://{addr}");
-    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(&addr)
+        .await
+        .unwrap_or_else(|e| panic!("cannot bind {addr}: {e}"));
     axum::serve(listener, app.into_make_service())
         .await
-        .unwrap();
+        .expect("axum server runs until shutdown");
 }
 
 // The `hydrate` (wasm) build has no server binary; cargo-leptos still compiles

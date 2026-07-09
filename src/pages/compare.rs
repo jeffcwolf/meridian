@@ -29,26 +29,7 @@ const BASE_OPTIONS: [(&str, &str); 4] = [
     ("GBP", "GBP (£)"),
 ];
 
-/// Repeated `id=` params come in on the query string; parse them ourselves
-/// (ParamsMap keeps only one value per key).
-fn parse_ids(search: &str) -> Vec<i64> {
-    search
-        .trim_start_matches('?')
-        .split('&')
-        .filter_map(|kv| kv.strip_prefix("id="))
-        .filter_map(|v| v.parse::<i64>().ok())
-        .collect()
-}
-
-fn parse_param(search: &str, key: &str) -> Option<String> {
-    let prefix = format!("{key}=");
-    search
-        .trim_start_matches('?')
-        .split('&')
-        .find_map(|kv| kv.strip_prefix(&prefix))
-        .map(|v| v.to_string())
-        .filter(|s| !s.is_empty())
-}
+use crate::query::{parse_ids, parse_param};
 
 #[component]
 pub fn ComparePage() -> impl IntoView {

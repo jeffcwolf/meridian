@@ -7,6 +7,7 @@ use axum::http::{header, StatusCode};
 use axum::response::{IntoResponse, Response};
 
 use crate::data;
+use crate::query::{parse_ids, parse_param};
 
 fn download(body: String, content_type: &'static str, filename: &str) -> Response {
     (
@@ -30,23 +31,6 @@ fn csv_field(s: &str) -> String {
     } else {
         s.to_string()
     }
-}
-
-fn parse_ids(query: &str) -> Vec<i64> {
-    query
-        .split('&')
-        .filter_map(|kv| kv.strip_prefix("id="))
-        .filter_map(|v| v.parse::<i64>().ok())
-        .collect()
-}
-
-fn parse_param(query: &str, key: &str) -> Option<String> {
-    let prefix = format!("{key}=");
-    query
-        .split('&')
-        .find_map(|kv| kv.strip_prefix(&prefix))
-        .map(str::to_string)
-        .filter(|s| !s.is_empty())
 }
 
 /// `GET /export/company/{id}/{format}` — one company's facts as CSV or JSON.

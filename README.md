@@ -66,10 +66,19 @@ src/
 ├── lib.rs           # module wiring + wasm hydrate entry
 ├── app.rs           # Leptos app root, shell, router
 ├── model.rs         # shared serializable data types
-├── data/            # rusqlite reads (ssr only)
-├── components/      # shared UI (header)
-└── pages/           # search + company detail (each owns its server fn)
+├── query.rs         # shared query-string parsing
+├── export.rs        # CSV/JSON export handlers (ssr)
+├── data/            # rusqlite reads: reads · compare · dashboards · format (ssr)
+├── components/      # shared UI (header, stat tile)
+└── pages/           # one module per page (each owns its server fn)
 scripts/src/         # Python data pipeline
 style/main.css       # hand-written CSS
 data/                # SQLite cache (gitignored)
 ```
+
+## Code standards
+
+The code is written and reviewed against a three-layer methodology — structure
+(Ousterhout's *A Philosophy of Software Design*), expression (*The Art of
+Readable Code*), then Rust idiom. The standards, and how they're applied here,
+are documented in [`docs/standards/`](docs/standards/README.md).
