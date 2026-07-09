@@ -48,6 +48,13 @@ CREATE TABLE IF NOT EXISTS financial_facts (
     UNIQUE(entity_id, reporting_date, concept)
 );
 
+CREATE TABLE IF NOT EXISTS fx_rates (
+    currency     TEXT NOT NULL,
+    year         TEXT NOT NULL,
+    rate_per_eur REAL NOT NULL,   -- units of `currency` per 1 EUR (ECB annual average)
+    PRIMARY KEY (currency, year)
+);
+
 CREATE INDEX IF NOT EXISTS idx_filings_entity ON filings(entity_id);
 CREATE INDEX IF NOT EXISTS idx_facts_entity ON financial_facts(entity_id);
 """
@@ -159,6 +166,21 @@ def upsert_fact(
             currency = excluded.currency
         """,
         (entity_id, reporting_date, concept, value, currency),
+    )
+    conn.commit()
+
+
+def upsert_fx_rate(
+    conn: sqlite3.Connection, currency: str, year: str, rate_per_eur: float
+) -> None:
+    """Insert or update an annual FX rate (units of `currency` per 1 EUR)."""
+    conn.execute(
+        """
+        INSERT INTO fx_rates (currency, year, rate_per_eur)
+        VALUES (?, ?, ?)
+        ON CONFLICT(currency, year) DO UPDATE SET rate_per_eur = excluded.rate_per_eur
+        """,
+        (currency, year, rate_per_eur),
     )
     conn.commit()
 

@@ -10,14 +10,23 @@ use crate::pages::search::search_companies;
 pub async fn compare_data(
     ids: Vec<i64>,
     fy: Option<String>,
+    base: Option<String>,
 ) -> Result<Option<CompareTable>, ServerFnError> {
     if ids.len() < 2 {
         return Ok(None);
     }
-    crate::data::compare(&ids, fy.as_deref())
+    crate::data::compare(&ids, fy.as_deref(), base.as_deref())
         .map(Some)
         .map_err(|e| ServerFnError::new(e.to_string()))
 }
+
+/// Currency options offered in the comparator's base-currency picker.
+const BASE_OPTIONS: [(&str, &str); 4] = [
+    ("", "Native"),
+    ("EUR", "EUR (€)"),
+    ("USD", "USD ($)"),
+    ("GBP", "GBP (£)"),
+];
 
 /// Repeated `id=` params come in on the query string; parse them ourselves
 /// (ParamsMap keeps only one value per key).
@@ -30,11 +39,12 @@ fn parse_ids(search: &str) -> Vec<i64> {
         .collect()
 }
 
-fn parse_fy(search: &str) -> Option<String> {
+fn parse_param(search: &str, key: &str) -> Option<String> {
+    let prefix = format!("{key}=");
     search
         .trim_start_matches('?')
         .split('&')
-        .find_map(|kv| kv.strip_prefix("fy="))
+        .find_map(|kv| kv.strip_prefix(&prefix))
         .map(|v| v.to_string())
         .filter(|s| !s.is_empty())
 }
@@ -43,12 +53,13 @@ fn parse_fy(search: &str) -> Option<String> {
 pub fn ComparePage() -> impl IntoView {
     let location = use_location();
     let ids = move || parse_ids(&location.search.get());
-    let fy = move || parse_fy(&location.search.get());
+    let fy = move || parse_param(&location.search.get(), "fy");
+    let base = move || parse_param(&location.search.get(), "base");
 
     let all = Resource::new_blocking(|| (), |_| async { search_companies(None).await });
     let table = Resource::new_blocking(
-        move || (ids(), fy()),
-        |(ids, fy)| async move { compare_data(ids, fy).await },
+        move || (ids(), fy(), base()),
+        |(ids, fy, base)| async move { compare_data(ids, fy, base).await },
     );
 
     view! {
@@ -80,6 +91,7 @@ pub fn ComparePage() -> impl IntoView {
                         selected=ids()
                         years=years
                         fy=current_fy
+                        base=base()
                     />
                     {result.map(|t| view! { <CompareTableView table=t /> })}
                     {(ids().len() < 2)
@@ -101,6 +113,7 @@ fn CompareForm(
     selected: Vec<i64>,
     years: Vec<String>,
     fy: Option<String>,
+    base: Option<String>,
 ) -> impl IntoView {
     let checks = companies
         .into_iter()
@@ -118,7 +131,8 @@ fn CompareForm(
         })
         .collect_view();
 
-    let year_select = (!years.is_empty()).then(|| {
+    let has_years = !years.is_empty();
+    let year_select = has_years.then(|| {
         let options = years
             .into_iter()
             .map(|y| {
@@ -127,9 +141,26 @@ fn CompareForm(
             })
             .collect_view();
         view! {
-            <label class="year-picker">
+            <label class="picker">
                 "Fiscal year "
                 <select name="fy">{options}</select>
+            </label>
+        }
+    });
+
+    let base_up = base.map(|b| b.to_uppercase());
+    let currency_select = has_years.then(|| {
+        let options = BASE_OPTIONS
+            .iter()
+            .map(|(code, label)| {
+                let is_sel = base_up.as_deref().unwrap_or("") == *code;
+                view! { <option value=*code selected=is_sel>{*label}</option> }
+            })
+            .collect_view();
+        view! {
+            <label class="picker">
+                "Currency "
+                <select name="base">{options}</select>
             </label>
         }
     });
@@ -139,6 +170,7 @@ fn CompareForm(
             <div class="checks">{checks}</div>
             <div class="compare-controls">
                 {year_select}
+                {currency_select}
                 <button class="btn" type="submit">"Compare"</button>
             </div>
         </form>
@@ -151,8 +183,14 @@ fn CompareTableView(table: CompareTable) -> impl IntoView {
         fy,
         labels,
         columns,
+        base,
         ..
     } = table;
+
+    let caption = match &base {
+        Some(b) => format!("Converted to {b} at ECB annual-average rates · figures in millions"),
+        None => "Native currency · figures in millions".to_string(),
+    };
 
     let headers = columns
         .iter()
@@ -208,10 +246,7 @@ fn CompareTableView(table: CompareTable) -> impl IntoView {
                 </thead>
                 <tbody>{body}</tbody>
             </table>
-            <p class="caption">
-                "Native currency, figures in millions. Cross-currency FX conversion to a common
-                 base (via ECB reference rates) is a planned next step."
-            </p>
+            <p class="caption">{caption}</p>
         </div>
     }
 }

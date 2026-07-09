@@ -86,11 +86,20 @@ pub fn list_companies(query: Option<&str>) -> rusqlite::Result<Vec<CompanySummar
     rows.collect()
 }
 
-/// Full detail for one company: entity info, a pivoted IFRS financials table,
-/// and the filing timeline. Returns `None` if the id is unknown.
-pub fn get_company(id: i64) -> rusqlite::Result<Option<CompanyDetail>> {
-    let conn = open_db()?;
+/// A company's raw (unformatted) figures, shared by the detail and compare
+/// paths. Each row is aligned to [`CONCEPTS`], each cell to `years`, and holds
+/// the amount in minor-free full units plus its ISO currency.
+struct RawCompany {
+    id: i64,
+    name: String,
+    country: Option<String>,
+    lei: Option<String>,
+    currency: Option<String>,
+    years: Vec<String>,
+    rows: Vec<Vec<Option<(i128, String)>>>,
+}
 
+fn raw_company(conn: &Connection, id: i64) -> rusqlite::Result<Option<RawCompany>> {
     let entity = conn
         .query_row(
             "SELECT id, name, country, lei FROM entities WHERE id = ?1",
@@ -109,13 +118,80 @@ pub fn get_company(id: i64) -> rusqlite::Result<Option<CompanyDetail>> {
         return Ok(None);
     };
 
+    let mut ystmt = conn.prepare(&format!(
+        "SELECT DISTINCT {FISCAL_YEAR} AS fy FROM filings
+         WHERE entity_id = ?1 AND reporting_date IS NOT NULL
+         ORDER BY fy DESC"
+    ))?;
+    let years: Vec<String> = ystmt
+        .query_map([id], |r| r.get::<_, String>(0))?
+        .collect::<rusqlite::Result<_>>()?;
+
+    // (concept, fiscal_year) -> (amount, currency)
+    let mut xstmt = conn.prepare(&format!(
+        "SELECT concept, {FISCAL_YEAR} AS fy, value, currency
+         FROM financial_facts WHERE entity_id = ?1"
+    ))?;
+    let mut facts: HashMap<(String, String), (i128, String)> = HashMap::new();
+    let mut currency: Option<String> = None;
+    let query = xstmt.query_map([id], |r| {
+        Ok((
+            r.get::<_, String>(0)?,
+            r.get::<_, Option<String>>(1)?,
+            r.get::<_, Option<String>>(2)?,
+            r.get::<_, Option<String>>(3)?,
+        ))
+    })?;
+    for row in query {
+        let (concept, fy, value, ccy) = row?;
+        if currency.is_none() && ccy.is_some() {
+            currency = ccy.clone();
+        }
+        if let (Some(fy), Some(amount)) = (fy, value.as_deref().and_then(parse_amount)) {
+            facts.insert((concept, fy), (amount, ccy.unwrap_or_default()));
+        }
+    }
+
+    let rows = CONCEPTS
+        .iter()
+        .map(|(_, concepts)| {
+            years
+                .iter()
+                .map(|y| {
+                    concepts
+                        .iter()
+                        .find_map(|c| facts.get(&((*c).to_string(), y.clone())).cloned())
+                })
+                .collect()
+        })
+        .collect();
+
+    Ok(Some(RawCompany {
+        id,
+        name,
+        country,
+        lei,
+        currency,
+        years,
+        rows,
+    }))
+}
+
+/// Full detail for one company: entity info, a pivoted IFRS financials table,
+/// and the filing timeline. Returns `None` if the id is unknown.
+pub fn get_company(id: i64) -> rusqlite::Result<Option<CompanyDetail>> {
+    let conn = open_db()?;
+    let Some(raw) = raw_company(&conn, id)? else {
+        return Ok(None);
+    };
+
     // Filing timeline (most recent first).
     let mut fstmt = conn.prepare(
         "SELECT reporting_date, country, filing_url, xbrl_json_url, validation_message_count
          FROM filings WHERE entity_id = ?1 ORDER BY reporting_date DESC",
     )?;
     let filings: Vec<FilingRow> = fstmt
-        .query_map([id], |r| {
+        .query_map([raw.id], |r| {
             Ok(FilingRow {
                 reporting_date: r.get(0)?,
                 country: r.get(1)?,
@@ -126,88 +202,53 @@ pub fn get_company(id: i64) -> rusqlite::Result<Option<CompanyDetail>> {
         })?
         .collect::<rusqlite::Result<_>>()?;
 
-    // Distinct fiscal years present in the filings, most recent first.
-    let mut ystmt = conn.prepare(&format!(
-        "SELECT DISTINCT {FISCAL_YEAR} AS fy FROM filings
-         WHERE entity_id = ?1 AND reporting_date IS NOT NULL
-         ORDER BY fy DESC"
-    ))?;
-    let years: Vec<String> = ystmt
-        .query_map([id], |r| r.get::<_, String>(0))?
-        .collect::<rusqlite::Result<_>>()?;
-
-    // (concept, fiscal_year) -> value; currency is taken from the first fact seen.
-    let mut xstmt = conn.prepare(&format!(
-        "SELECT concept, {FISCAL_YEAR} AS fy, value, currency
-         FROM financial_facts WHERE entity_id = ?1"
-    ))?;
-    let mut facts: HashMap<(String, String), String> = HashMap::new();
-    let mut currency: Option<String> = None;
-    let rows = xstmt.query_map([id], |r| {
-        Ok((
-            r.get::<_, String>(0)?,
-            r.get::<_, Option<String>>(1)?,
-            r.get::<_, Option<String>>(2)?,
-            r.get::<_, Option<String>>(3)?,
-        ))
-    })?;
-    for row in rows {
-        let (concept, fy, value, ccy) = row?;
-        if currency.is_none() {
-            currency = ccy;
-        }
-        if let (Some(fy), Some(v)) = (fy, value) {
-            facts.insert((concept, fy), v);
-        }
-    }
-
-    // Build each row, coalescing across the concept's aliases (primary first).
     let rows = CONCEPTS
         .iter()
-        .map(|(label, concepts)| {
-            let cells = years
+        .zip(raw.rows.iter())
+        .map(|((label, concepts), raw_row)| ConceptRow {
+            concept: concepts[0].to_string(),
+            label: label.to_string(),
+            cells: raw_row
                 .iter()
-                .map(|y| {
-                    concepts
-                        .iter()
-                        .find_map(|c| facts.get(&((*c).to_string(), y.clone())))
-                        .map(|v| fmt_millions(v))
-                })
-                .collect();
-            ConceptRow {
-                concept: concepts[0].to_string(),
-                label: label.to_string(),
-                cells,
-            }
+                .map(|cell| cell.as_ref().map(|(n, _)| fmt_millions(*n)))
+                .collect(),
         })
         .collect();
 
     Ok(Some(CompanyDetail {
-        id,
-        name,
-        country,
-        lei,
-        currency,
-        years,
+        id: raw.id,
+        name: raw.name,
+        country: raw.country,
+        lei: raw.lei,
+        currency: raw.currency,
+        years: raw.years,
         rows,
         filings,
     }))
 }
 
 /// Align several companies' IFRS figures for one fiscal year, one column each.
-/// Unknown ids are skipped. `fy` defaults to the most recent year available
-/// across the selected companies.
-pub fn compare(ids: &[i64], fy: Option<&str>) -> rusqlite::Result<CompareTable> {
-    let details: Vec<CompanyDetail> = ids
+/// Unknown ids are skipped. `fy` defaults to the most recent year available.
+/// `base` (an ISO code such as `"EUR"`) converts every column to that currency
+/// at ECB annual-average rates; `None`/`"native"` keeps each issuer's own.
+pub fn compare(
+    ids: &[i64],
+    fy: Option<&str>,
+    base: Option<&str>,
+) -> rusqlite::Result<CompareTable> {
+    let conn = open_db()?;
+    let fx = load_fx(&conn)?;
+
+    let raws: Vec<RawCompany> = ids
         .iter()
-        .filter_map(|&id| get_company(id).transpose())
+        .filter_map(|&id| raw_company(&conn, id).transpose())
         .collect::<rusqlite::Result<_>>()?;
 
     let mut year_set: BTreeSet<String> = BTreeSet::new();
-    for d in &details {
-        year_set.extend(d.years.iter().cloned());
+    for r in &raws {
+        year_set.extend(r.years.iter().cloned());
     }
-    let years: Vec<String> = year_set.into_iter().rev().collect(); // most recent first
+    let years: Vec<String> = year_set.into_iter().rev().collect();
 
     let fy = fy
         .map(str::to_string)
@@ -215,22 +256,32 @@ pub fn compare(ids: &[i64], fy: Option<&str>) -> rusqlite::Result<CompareTable> 
         .or_else(|| years.first().cloned())
         .unwrap_or_default();
 
+    let base = base
+        .filter(|b| !b.is_empty() && !b.eq_ignore_ascii_case("native"))
+        .map(str::to_uppercase);
+
     let labels: Vec<String> = CONCEPTS.iter().map(|(l, _)| l.to_string()).collect();
 
-    let columns = details
+    let columns = raws
         .into_iter()
-        .map(|d| {
-            let idx = d.years.iter().position(|y| *y == fy);
-            let cells = d
+        .map(|r| {
+            let idx = r.years.iter().position(|y| *y == fy);
+            let cells = r
                 .rows
                 .iter()
-                .map(|row| idx.and_then(|i| row.cells.get(i).cloned().flatten()))
+                .map(|row| {
+                    let cell = idx.and_then(|i| row.get(i).cloned().flatten());
+                    cell.and_then(|(amount, cur)| match &base {
+                        Some(b) => convert(amount, &cur, b, &fy, &fx).map(fmt_millions),
+                        None => Some(fmt_millions(amount)),
+                    })
+                })
                 .collect();
             CompareColumn {
-                id: d.id,
-                name: d.name,
-                country: d.country,
-                currency: d.currency,
+                currency: base.clone().or_else(|| r.currency.clone()),
+                id: r.id,
+                name: r.name,
+                country: r.country,
                 cells,
             }
         })
@@ -241,21 +292,78 @@ pub fn compare(ids: &[i64], fy: Option<&str>) -> rusqlite::Result<CompareTable> 
         years,
         labels,
         columns,
+        base,
     })
 }
 
-/// Format a full-currency-unit integer string as a thousands-grouped figure in
-/// millions, e.g. `"77769000000"` -> `"77,769"`.
-fn fmt_millions(raw: &str) -> String {
-    let negative = raw.trim_start().starts_with('-');
-    let digits: String = raw.chars().filter(|c| c.is_ascii_digit()).collect();
-    let millions = digits.parse::<i128>().unwrap_or(0) / 1_000_000;
-    let grouped = group_thousands(millions);
-    if negative && millions != 0 {
+/// Load all FX rates as `(currency, year) -> units per EUR`.
+fn load_fx(conn: &Connection) -> rusqlite::Result<HashMap<(String, String), f64>> {
+    let mut stmt = conn.prepare("SELECT currency, year, rate_per_eur FROM fx_rates")?;
+    let mut map = HashMap::new();
+    let rows = stmt.query_map([], |r| {
+        Ok((
+            r.get::<_, String>(0)?,
+            r.get::<_, String>(1)?,
+            r.get::<_, f64>(2)?,
+        ))
+    })?;
+    for row in rows {
+        let (currency, year, rate) = row?;
+        map.insert((currency, year), rate);
+    }
+    Ok(map)
+}
+
+fn rate_per_eur(fx: &HashMap<(String, String), f64>, currency: &str, year: &str) -> Option<f64> {
+    if currency.eq_ignore_ascii_case("EUR") {
+        Some(1.0)
+    } else {
+        fx.get(&(currency.to_string(), year.to_string())).copied()
+    }
+}
+
+/// Convert `amount` in `from` to `to` for a given fiscal year via EUR.
+/// Returns `None` if a needed rate is missing.
+fn convert(
+    amount: i128,
+    from: &str,
+    to: &str,
+    year: &str,
+    fx: &HashMap<(String, String), f64>,
+) -> Option<i128> {
+    if from.eq_ignore_ascii_case(to) {
+        return Some(amount);
+    }
+    let from_rate = rate_per_eur(fx, from, year)?;
+    let to_rate = rate_per_eur(fx, to, year)?;
+    if from_rate == 0.0 {
+        return None;
+    }
+    Some((amount as f64 * to_rate / from_rate).round() as i128)
+}
+
+/// Format a full-currency-unit amount as a thousands-grouped figure in millions,
+/// e.g. `77_769_000_000` -> `"77,769"`.
+fn fmt_millions(n: i128) -> String {
+    let millions = n / 1_000_000;
+    let grouped = group_thousands(millions.abs());
+    if millions < 0 {
         format!("-{grouped}")
     } else {
         grouped
     }
+}
+
+/// Parse a raw XBRL-JSON numeric string (which may carry a decimal part or sign)
+/// to an integer amount, truncating any fractional part.
+fn parse_amount(raw: &str) -> Option<i128> {
+    let raw = raw.trim();
+    let negative = raw.starts_with('-');
+    let body = raw.trim_start_matches(['-', '+']);
+    let int_part = body.split('.').next().unwrap_or("");
+    let digits: String = int_part.chars().filter(|c| c.is_ascii_digit()).collect();
+    let n: i128 = digits.parse().ok()?;
+    Some(if negative { -n } else { n })
 }
 
 fn group_thousands(n: i128) -> String {

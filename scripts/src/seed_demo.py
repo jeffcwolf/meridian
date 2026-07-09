@@ -103,6 +103,16 @@ def main() -> None:
                     currency=currency,
                 )
 
+    # Illustrative ECB annual-average rates (units per EUR) so the comparator's
+    # currency conversion works offline.
+    demo_fx = {
+        "USD": {"2022": 1.0530, "2023": 1.0813},
+        "DKK": {"2022": 7.4400, "2023": 7.4508},
+    }
+    for currency, by_year in demo_fx.items():
+        for year, rate in by_year.items():
+            db.upsert_fx_rate(conn, currency, year, rate)
+
     n_e = conn.execute("SELECT COUNT(*) AS n FROM entities").fetchone()["n"]
     n_f = conn.execute("SELECT COUNT(*) AS n FROM filings").fetchone()["n"]
     n_x = conn.execute("SELECT COUNT(*) AS n FROM financial_facts").fetchone()["n"]

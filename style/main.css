@@ -457,18 +457,22 @@ main.container {
     border-top: 1px solid var(--line);
 }
 
-.year-picker {
+.compare-controls .picker {
     font-size: 0.9rem;
     color: var(--ink-soft);
 }
 
-.year-picker select {
+.compare-controls .picker select {
     margin-left: 0.4rem;
     padding: 0.4rem 0.5rem;
     font: inherit;
     border: 1px solid var(--line-strong);
     border-radius: 6px;
     background: var(--panel);
+}
+
+.compare-controls .btn {
+    margin-left: auto;
 }
 
 .compare-table thead th.num {

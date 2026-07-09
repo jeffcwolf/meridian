@@ -26,9 +26,11 @@ The first end-to-end slice of the [SPEC](SPEC.md) build sequence:
 
 1. `fetch_filings.py` — match seed issuers to their filer in the filings.xbrl.org index → entity + filing metadata
 2. `parse_xbrl_json.py` — XBRL-JSON extracts → headline IFRS facts
-3. A Leptos + Axum app with two pages:
+3. `fetch_fx_rates.py` — ECB annual reference rates → `fx_rates` (for currency conversion)
+4. A Leptos + Axum app with three pages:
    - **Search** — every seeded company with country, filing count, and years
    - **Company detail** — IFRS financial highlights across years + a filing timeline
+   - **Compare** — 2–5 companies side by side for a chosen year, convertible to a common currency (EUR/USD/GBP) at ECB rates
 
 ## Running it
 
@@ -42,7 +44,10 @@ bundle.
 # 1. Populate the data cache.
 cd scripts
 uv sync
-uv run python src/fetch_filings.py      # real data (needs network), OR
+uv run python src/fetch_filings.py      # real data (needs network) …
+uv run python src/parse_xbrl_json.py    # … then parse financials …
+uv run python src/fetch_fx_rates.py     # … then FX rates (optional)
+# or, with no network:
 uv run python src/seed_demo.py          # offline demo data
 cd ..
 

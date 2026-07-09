@@ -54,6 +54,8 @@ pub struct CompareTable {
     pub years: Vec<String>,
     pub labels: Vec<String>,
     pub columns: Vec<CompareColumn>,
+    /// Common currency figures were converted to, or `None` when shown native.
+    pub base: Option<String>,
 }
 
 /// Everything the company detail page needs.
