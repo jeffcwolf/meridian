@@ -788,7 +788,8 @@ main.container {
     color: var(--ink-soft);
 }
 
-.contact {
+.contact,
+.repo-link {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
@@ -800,7 +801,8 @@ main.container {
     text-decoration: none;
 }
 
-.contact:hover {
+.contact:hover,
+.repo-link:hover {
     background: var(--navy);
     color: #fff !important;
     border-color: var(--navy);
@@ -809,6 +811,11 @@ main.container {
 
 .mail-icon {
     font-size: 0.95rem;
+}
+
+.repo-icon {
+    display: block;
+    flex-shrink: 0;
 }
 
 @media (max-width: 640px) {
