@@ -1,3 +1,4 @@
+pub mod about;
 pub mod company;
 pub mod compare;
 pub mod coverage;

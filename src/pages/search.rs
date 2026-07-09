@@ -39,10 +39,12 @@ pub fn SearchPage() -> impl IntoView {
 
     view! {
         <section class="page-intro">
-            <h1>"European company filings"</h1>
-            <p class="muted">
-                "Search issuers that have filed under the ESEF mandate. Figures are drawn
-                 from the machine-readable XBRL-JSON extracts on filings.xbrl.org."
+            <h1>"European ESEF filings, made comparable"</h1>
+            <p class="lead">
+                "ESEF tags every EU-listed annual report with the IFRS taxonomy so the numbers are
+                 machine-readable across borders. Meridian pulls that data, parses it, and lets you
+                 search, compare and explore it — the comparability ESEF promised, delivered. "
+                <a href="/about">"How it works →"</a>
             </p>
             <form class="search-form" method="GET" action="/">
                 <input
@@ -56,6 +58,27 @@ pub fn SearchPage() -> impl IntoView {
                 <button type="submit" class="btn">"Search"</button>
             </form>
         </section>
+
+        <nav class="feature-cards" aria-label="Features">
+            <a class="feature-card" href="/compare">
+                <span class="feature-title">"Compare"</span>
+                <span class="feature-desc">
+                    "2–5 companies side by side, in one currency at ECB rates"
+                </span>
+            </a>
+            <a class="feature-card" href="/coverage">
+                <span class="feature-title">"Coverage"</span>
+                <span class="feature-desc">"Which countries the ESEF index covers — and doesn't"</span>
+            </a>
+            <a class="feature-card" href="/quality">
+                <span class="feature-title">"Data quality"</span>
+                <span class="feature-desc">"Validation messages by severity and country"</span>
+            </a>
+            <a class="feature-card" href="/extensions">
+                <span class="feature-title">"Extensions"</span>
+                <span class="feature-desc">"Where issuers depart from standard IFRS tags"</span>
+            </a>
+        </nav>
 
         <Suspense fallback=move || {
             view! { <p class="muted loading">"Loading companies…"</p> }

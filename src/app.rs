@@ -4,6 +4,7 @@ use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
 
 use crate::components::Header;
+use crate::pages::about::AboutPage;
 use crate::pages::company::CompanyPage;
 use crate::pages::compare::ComparePage;
 use crate::pages::coverage::CoveragePage;
@@ -44,6 +45,7 @@ pub fn App() -> impl IntoView {
             <main class="container">
                 <Routes fallback=|| view! { <NotFound /> }>
                     <Route path=path!("/") view=SearchPage />
+                    <Route path=path!("/about") view=AboutPage />
                     <Route path=path!("/company/:id") view=CompanyPage />
                     <Route path=path!("/compare") view=ComparePage />
                     <Route path=path!("/coverage") view=CoveragePage />
@@ -52,11 +54,25 @@ pub fn App() -> impl IntoView {
                 </Routes>
             </main>
             <footer class="site-footer">
-                <p>
-                    "Data: "
-                    <a href="https://filings.xbrl.org">"filings.xbrl.org"</a>
-                    " ESEF filing index (entity, filing and XBRL-JSON data)"
-                </p>
+                <div class="footer-inner">
+                    <p class="footer-source">
+                        "Data: "
+                        <a href="https://filings.xbrl.org">"filings.xbrl.org"</a>
+                        " ESEF index · ECB reference rates · "
+                        <a href="/about">"About this project"</a>
+                    </p>
+                    <div class="creator">
+                        <span class="creator-name">"Created by Jeffrey C. Wolf"</span>
+                        <a
+                            class="contact"
+                            href="mailto:publicemailalias.kite252@passmail.net"
+                            aria-label="Email the creator"
+                        >
+                            <span class="mail-icon" aria-hidden="true">"✉"</span>
+                            <span>"Contact me"</span>
+                        </a>
+                    </div>
+                </div>
             </footer>
         </Router>
     }

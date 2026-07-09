@@ -29,6 +29,7 @@ pub fn Header() -> impl IntoView {
                     <a href="/coverage">"Coverage"</a>
                     <a href="/quality">"Quality"</a>
                     <a href="/extensions">"Extensions"</a>
+                    <a href="/about">"About"</a>
                 </nav>
             </div>
         </header>
