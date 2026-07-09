@@ -28,6 +28,11 @@ TARGET_CONCEPTS: set[str] = {
     "ifrs-full:Revenue",
     "ifrs-full:RevenueFromContractsWithCustomers",
     "ifrs-full:RevenueFromSaleOfGoods",
+    # Bank income lines (banks have no single "Revenue"): shown as their own
+    # rows for financial issuers.
+    "ifrs-full:RevenueFromInterest",
+    "ifrs-full:RevenueFromFeeAndCommissionIncome",
+    "ifrs-full:FeeAndCommissionIncome",
     "ifrs-full:Assets",
     "ifrs-full:ProfitLoss",
     "ifrs-full:Equity",

@@ -26,6 +26,11 @@ TARGET_ROWS: dict[str, list[str]] = {
         "ifrs-full:RevenueFromContractsWithCustomers",
         "ifrs-full:RevenueFromSaleOfGoods",
     ],
+    "InterestIncome": ["ifrs-full:RevenueFromInterest"],
+    "FeeIncome": [
+        "ifrs-full:RevenueFromFeeAndCommissionIncome",
+        "ifrs-full:FeeAndCommissionIncome",
+    ],
     "ProfitLoss": ["ifrs-full:ProfitLoss"],
     "Assets": ["ifrs-full:Assets"],
     "Equity": ["ifrs-full:Equity", "ifrs-full:EquityAttributableToOwnersOfParent"],

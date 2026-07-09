@@ -12,13 +12,23 @@ use crate::model::{
 /// Headline IFRS rows in display order: a label plus the accepted concept tags
 /// (primary first). Issuers tag the same line differently, so each row coalesces
 /// across its aliases, preferring the primary tag.
-const CONCEPTS: [(&str, &[&str]); 5] = [
+const CONCEPTS: [(&str, &[&str]); 7] = [
     (
         "Revenue",
         &[
             "ifrs-full:Revenue",
             "ifrs-full:RevenueFromContractsWithCustomers",
             "ifrs-full:RevenueFromSaleOfGoods",
+        ],
+    ),
+    // Bank income lines — banks have no single "Revenue". Rows that are empty
+    // for every company in a view are dropped, so these only appear for banks.
+    ("Interest income", &["ifrs-full:RevenueFromInterest"]),
+    (
+        "Fee & commission income",
+        &[
+            "ifrs-full:RevenueFromFeeAndCommissionIncome",
+            "ifrs-full:FeeAndCommissionIncome",
         ],
     ),
     ("Profit (loss) for the period", &["ifrs-full:ProfitLoss"]),
@@ -213,6 +223,9 @@ pub fn get_company(id: i64) -> rusqlite::Result<Option<CompanyDetail>> {
                 .map(|cell| cell.as_ref().map(|(n, _)| fmt_millions(*n)))
                 .collect(),
         })
+        // Drop rows with no data at all (e.g. Revenue for a bank, or the bank
+        // income lines for a non-bank).
+        .filter(|row| row.cells.iter().any(Option::is_some))
         .collect();
 
     Ok(Some(CompanyDetail {
@@ -260,9 +273,9 @@ pub fn compare(
         .filter(|b| !b.is_empty() && !b.eq_ignore_ascii_case("native"))
         .map(str::to_uppercase);
 
-    let labels: Vec<String> = CONCEPTS.iter().map(|(l, _)| l.to_string()).collect();
+    let all_labels: Vec<String> = CONCEPTS.iter().map(|(l, _)| l.to_string()).collect();
 
-    let columns = raws
+    let mut columns: Vec<CompareColumn> = raws
         .into_iter()
         .map(|r| {
             let idx = r.years.iter().position(|y| *y == fy);
@@ -286,6 +299,20 @@ pub fn compare(
             }
         })
         .collect();
+
+    // Drop concept rows that are empty for every selected company (e.g. the bank
+    // income lines when comparing non-banks, or Revenue when comparing banks).
+    let keep: Vec<usize> = (0..all_labels.len())
+        .filter(|&i| {
+            columns
+                .iter()
+                .any(|c| matches!(c.cells.get(i), Some(Some(_))))
+        })
+        .collect();
+    let labels: Vec<String> = keep.iter().map(|&i| all_labels[i].clone()).collect();
+    for col in &mut columns {
+        col.cells = keep.iter().map(|&i| col.cells[i].clone()).collect();
+    }
 
     Ok(CompareTable {
         fy,

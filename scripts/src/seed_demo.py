@@ -15,6 +15,8 @@ import db
 # concept short-hand -> canonical IFRS tag
 CONCEPTS = {
     "rev": "ifrs-full:Revenue",
+    "int": "ifrs-full:RevenueFromInterest",
+    "fee": "ifrs-full:RevenueFromFeeAndCommissionIncome",
     "assets": "ifrs-full:Assets",
     "pl": "ifrs-full:ProfitLoss",
     "eq": "ifrs-full:Equity",
@@ -48,9 +50,12 @@ DEMO: list[tuple[str, str, str, str, dict[int, dict[str, str]]]] = [
         2022: {"rev": "53949000000", "assets": "154618000000", "pl": "4339000000",
                "eq": "56209000000", "cfo": "9411000000"},
     }),
+    # A bank: reports interest / fee income rather than a single "Revenue" line.
     ("Banco Santander SA", "549300F0WLW5CWKUWM90", "ES", "EUR", {
-        2023: {"rev": "57647000000", "assets": "1797062000000", "pl": "11076000000",
-               "eq": "97627000000"},
+        2023: {"int": "90123000000", "fee": "12057000000", "assets": "1797062000000",
+               "pl": "11076000000", "eq": "97627000000", "cfo": "38400000000"},
+        2022: {"int": "70000000000", "fee": "11790000000", "assets": "1734659000000",
+               "pl": "9605000000", "eq": "97585000000", "cfo": "21500000000"},
     }),
     ("Novo Nordisk A/S", "549300DAQ1UW3ZDN0M43", "DK", "DKK", {
         2023: {"rev": "232261000000", "assets": "290719000000", "pl": "83683000000",
