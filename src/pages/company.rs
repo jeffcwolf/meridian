@@ -7,7 +7,7 @@ use crate::model::CompanyDetail;
 /// Server function backing the company detail page.
 #[server(FetchCompany)]
 pub async fn company_detail(id: i64) -> Result<Option<CompanyDetail>, ServerFnError> {
-    crate::data::get_company(id).map_err(|e| ServerFnError::new(e.to_string()))
+    crate::data::load_company(id).map_err(|e| ServerFnError::new(e.to_string()))
 }
 
 #[component]

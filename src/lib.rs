@@ -2,9 +2,10 @@ pub mod app;
 pub mod components;
 pub mod model;
 pub mod pages;
+pub(crate) mod query;
 
 #[cfg(feature = "ssr")]
-pub mod data;
+pub(crate) mod data;
 
 #[cfg(feature = "ssr")]
 pub mod export;
