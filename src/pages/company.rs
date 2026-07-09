@@ -53,6 +53,7 @@ pub fn CompanyPage() -> impl IntoView {
 #[component]
 fn CompanyView(company: CompanyDetail) -> impl IntoView {
     let CompanyDetail {
+        id,
         name,
         country,
         lei,
@@ -130,6 +131,11 @@ fn CompanyView(company: CompanyDetail) -> impl IntoView {
                 <div class="company-meta">
                     <span class="chip">{country.unwrap_or_else(|| "—".into())}</span>
                     <code class="lei">{lei.unwrap_or_else(|| "LEI unknown".into())}</code>
+                    <span class="export-links">
+                        "Export "
+                        <a href=format!("/export/company/{id}/csv")>"CSV"</a>
+                        <a href=format!("/export/company/{id}/json")>"JSON"</a>
+                    </span>
                 </div>
             </header>
 

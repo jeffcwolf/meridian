@@ -51,6 +51,17 @@ CREATE TABLE IF NOT EXISTS financial_facts (
     UNIQUE(entity_id, reporting_date, concept)
 );
 
+CREATE TABLE IF NOT EXISTS extension_facts (
+    id             INTEGER PRIMARY KEY,
+    entity_id      INTEGER NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+    reporting_date TEXT,
+    concept        TEXT NOT NULL,   -- company-specific extension tag, e.g. "ext:PatrimonioNetto"
+    prefix         TEXT,            -- the extension namespace prefix, e.g. "ext"
+    value          TEXT,
+    currency       TEXT,
+    UNIQUE(entity_id, reporting_date, concept)
+);
+
 CREATE TABLE IF NOT EXISTS fx_rates (
     currency     TEXT NOT NULL,
     year         TEXT NOT NULL,
@@ -184,6 +195,31 @@ def upsert_fact(
             currency = excluded.currency
         """,
         (entity_id, reporting_date, concept, value, currency),
+    )
+    conn.commit()
+
+
+def upsert_extension(
+    conn: sqlite3.Connection,
+    entity_id: int,
+    reporting_date: str | None,
+    concept: str,
+    prefix: str,
+    value: str | None,
+    currency: str | None,
+) -> None:
+    """Insert or update a company-specific extension fact."""
+    conn.execute(
+        """
+        INSERT INTO extension_facts
+            (entity_id, reporting_date, concept, prefix, value, currency)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(entity_id, reporting_date, concept) DO UPDATE SET
+            prefix = excluded.prefix,
+            value = excluded.value,
+            currency = excluded.currency
+        """,
+        (entity_id, reporting_date, concept, prefix, value, currency),
     )
     conn.commit()
 

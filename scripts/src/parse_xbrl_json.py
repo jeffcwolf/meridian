@@ -49,6 +49,10 @@ TARGET_CONCEPTS: set[str] = {
 # segment/member breakdown that we skip.
 CORE_DIMENSIONS: set[str] = {"concept", "entity", "period", "unit", "language"}
 
+# Namespace prefixes that belong to the standard ESEF/IFRS taxonomy. A concept
+# with any other prefix is a company-specific extension.
+STANDARD_PREFIXES: set[str] = {"ifrs-full", "ifrs", "esef_cor", "esef_all", "esef"}
+
 
 def _period_end(period: str) -> str:
     """Return the sortable end instant of an xBRL-JSON period string.
@@ -93,6 +97,36 @@ def extract_facts(report: dict) -> dict[str, tuple[str, str | None]]:
         if current is None or end > current[0]:
             best[concept] = (end, str(value), ccy)
     return {c: (v, ccy) for c, (_end, v, ccy) in best.items()}
+
+
+def extract_extensions(report: dict) -> dict[str, tuple[str, str, str | None]]:
+    """Pick current-year, top-line values for company-specific extension concepts.
+
+    Returns ``{concept: (prefix, value, currency)}`` for monetary, core-dimension
+    facts whose concept prefix is not part of the standard taxonomy — i.e. the
+    custom tags an issuer defined where IFRS did not fit.
+    """
+    facts = report.get("facts", {})
+    best: dict[str, tuple[str, str, str, str | None]] = {}  # concept -> (end, prefix, value, ccy)
+    for fact in facts.values():
+        dims = fact.get("dimensions", {})
+        concept = dims.get("concept")
+        unit = dims.get("unit")
+        if not concept or ":" not in concept or not unit:
+            continue
+        prefix = concept.split(":", 1)[0]
+        if prefix in STANDARD_PREFIXES:
+            continue
+        if set(dims) - CORE_DIMENSIONS:
+            continue
+        value = fact.get("value")
+        if value is None:
+            continue
+        end = _period_end(dims.get("period", ""))
+        current = best.get(concept)
+        if current is None or end > current[0]:
+            best[concept] = (end, prefix, str(value), _currency(unit))
+    return {c: (prefix, v, ccy) for c, (_end, prefix, v, ccy) in best.items()}
 
 
 def download_report(client: httpx.Client, url: str, retries: int = 3) -> dict | None:
@@ -143,13 +177,33 @@ def main() -> None:
                     currency=currency,
                 )
                 stored += 1
+
+            extensions = extract_extensions(report)
+            for concept, (prefix, value, currency) in extensions.items():
+                db.upsert_extension(
+                    conn,
+                    entity_id=row["entity_id"],
+                    reporting_date=row["reporting_date"],
+                    concept=concept,
+                    prefix=prefix,
+                    value=value,
+                    currency=currency,
+                )
+
             missing = TARGET_CONCEPTS - set(found)
             note = f" (missing: {', '.join(sorted(missing))})" if missing else ""
-            print(f"    stored {len(found)}/{len(TARGET_CONCEPTS)} concepts{note}")
+            print(
+                f"    stored {len(found)}/{len(TARGET_CONCEPTS)} concepts, "
+                f"{len(extensions)} extensions{note}"
+            )
 
     n_facts = conn.execute("SELECT COUNT(*) AS n FROM financial_facts").fetchone()["n"]
+    n_ext = conn.execute("SELECT COUNT(*) AS n FROM extension_facts").fetchone()["n"]
     conn.close()
-    print(f"\nDone: {stored} facts written this run, {n_facts} total in {db.DB_PATH}")
+    print(
+        f"\nDone: {stored} facts written this run, "
+        f"{n_facts} facts and {n_ext} extension facts total in {db.DB_PATH}"
+    )
 
 
 if __name__ == "__main__":

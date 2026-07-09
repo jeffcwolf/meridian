@@ -567,6 +567,39 @@ main.container {
     font-weight: 600;
 }
 
+/* ---- Export links ---- */
+
+.export-links {
+    font-size: 0.82rem;
+    color: var(--muted);
+}
+
+.export-links a {
+    margin-left: 0.5rem;
+    font-weight: 600;
+}
+
+.company-meta .export-links {
+    margin-left: auto;
+}
+
+/* ---- Extension tags ---- */
+
+.ext-tag {
+    display: inline-block;
+    font-size: 0.74rem;
+    color: var(--warn-fg);
+    background: var(--warn-bg);
+    border-radius: 4px;
+    padding: 0.08rem 0.35rem;
+    margin: 0.1rem 0.25rem 0.1rem 0;
+    word-break: break-all;
+}
+
+.ext-samples {
+    max-width: 520px;
+}
+
 /* ---- Coverage gap ---- */
 
 .data-table tbody tr.row-empty td {

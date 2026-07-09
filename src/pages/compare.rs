@@ -55,6 +55,7 @@ pub fn ComparePage() -> impl IntoView {
     let ids = move || parse_ids(&location.search.get());
     let fy = move || parse_param(&location.search.get(), "fy");
     let base = move || parse_param(&location.search.get(), "base");
+    let search = move || location.search.get().trim_start_matches('?').to_string();
 
     let all = Resource::new_blocking(|| (), |_| async { search_companies(None).await });
     let table = Resource::new_blocking(
@@ -85,6 +86,16 @@ pub fn ComparePage() -> impl IntoView {
                 let result = table.get().and_then(Result::ok).flatten();
                 let years = result.as_ref().map(|t| t.years.clone()).unwrap_or_default();
                 let current_fy = result.as_ref().map(|t| t.fy.clone());
+                let export_links = result.as_ref().map(|_| {
+                    let qs = search();
+                    view! {
+                        <p class="export-links">
+                            "Export comparison "
+                            <a href=format!("/export/compare/csv?{qs}")>"CSV"</a>
+                            <a href=format!("/export/compare/json?{qs}")>"JSON"</a>
+                        </p>
+                    }
+                });
                 view! {
                     <CompareForm
                         companies=companies
@@ -93,6 +104,7 @@ pub fn ComparePage() -> impl IntoView {
                         fy=current_fy
                         base=base()
                     />
+                    {export_links}
                     {result.map(|t| view! { <CompareTableView table=t /> })}
                     {(ids().len() < 2)
                         .then(|| {

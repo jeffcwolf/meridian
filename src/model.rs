@@ -104,6 +104,34 @@ pub struct QualitySummary {
     pub clean: i64,
 }
 
+/// One company's extension usage.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ExtensionByCompany {
+    pub id: i64,
+    pub name: String,
+    pub country: Option<String>,
+    pub count: i64,
+    pub samples: Vec<String>,
+}
+
+/// One extension concept and how many companies use it.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ExtensionConcept {
+    pub concept: String,
+    pub prefix: String,
+    pub companies: i64,
+}
+
+/// Extension-tag usage across the universe.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ExtensionSummary {
+    pub by_company: Vec<ExtensionByCompany>,
+    pub by_concept: Vec<ExtensionConcept>,
+    pub companies_using: i64,
+    pub distinct_concepts: i64,
+    pub total_facts: i64,
+}
+
 /// Everything the company detail page needs.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CompanyDetail {

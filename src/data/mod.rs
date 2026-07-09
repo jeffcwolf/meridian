@@ -7,7 +7,8 @@ use rusqlite::{Connection, OptionalExtension};
 
 use crate::model::{
     CompanyDetail, CompanySummary, CompareColumn, CompareTable, ConceptRow, CoverageRow,
-    CoverageSummary, FilingRow, QualityByCountry, QualitySummary,
+    CoverageSummary, ExtensionByCompany, ExtensionConcept, ExtensionSummary, FilingRow,
+    QualityByCountry, QualitySummary,
 };
 
 /// ISO 3166-1 alpha-2 -> country name for the jurisdictions we surface.
@@ -208,6 +209,73 @@ pub fn quality_summary() -> rusqlite::Result<QualitySummary> {
     })
 }
 
+/// Extension-tag usage: which issuers define company-specific tags, and which
+/// extensions are most common (a signal for where the IFRS taxonomy falls short).
+pub fn extension_summary() -> rusqlite::Result<ExtensionSummary> {
+    let conn = open_db()?;
+
+    let mut cstmt = conn.prepare(
+        "SELECT e.id, e.name, e.country, COUNT(DISTINCT x.concept) AS n
+         FROM entities e JOIN extension_facts x ON x.entity_id = e.id
+         GROUP BY e.id
+         ORDER BY n DESC, e.name",
+    )?;
+    let mut by_company: Vec<ExtensionByCompany> = cstmt
+        .query_map([], |r| {
+            Ok(ExtensionByCompany {
+                id: r.get(0)?,
+                name: r.get(1)?,
+                country: r.get(2)?,
+                count: r.get(3)?,
+                samples: Vec::new(),
+            })
+        })?
+        .collect::<rusqlite::Result<_>>()?;
+
+    let mut sstmt = conn.prepare(
+        "SELECT DISTINCT concept FROM extension_facts
+         WHERE entity_id = ?1 ORDER BY concept LIMIT 6",
+    )?;
+    for company in &mut by_company {
+        company.samples = sstmt
+            .query_map([company.id], |r| r.get::<_, String>(0))?
+            .collect::<rusqlite::Result<_>>()?;
+    }
+
+    let mut kstmt = conn.prepare(
+        "SELECT concept, prefix, COUNT(DISTINCT entity_id) AS n
+         FROM extension_facts
+         GROUP BY concept
+         ORDER BY n DESC, concept
+         LIMIT 40",
+    )?;
+    let by_concept: Vec<ExtensionConcept> = kstmt
+        .query_map([], |r| {
+            Ok(ExtensionConcept {
+                concept: r.get(0)?,
+                prefix: r.get::<_, Option<String>>(1)?.unwrap_or_default(),
+                companies: r.get(2)?,
+            })
+        })?
+        .collect::<rusqlite::Result<_>>()?;
+
+    let companies_using = by_company.len() as i64;
+    let distinct_concepts = conn.query_row(
+        "SELECT COUNT(DISTINCT concept) FROM extension_facts",
+        [],
+        |r| r.get(0),
+    )?;
+    let total_facts = conn.query_row("SELECT COUNT(*) FROM extension_facts", [], |r| r.get(0))?;
+
+    Ok(ExtensionSummary {
+        by_company,
+        by_concept,
+        companies_using,
+        distinct_concepts,
+        total_facts,
+    })
+}
+
 /// A company's raw (unformatted) figures, shared by the detail and compare
 /// paths. Each row is aligned to [`CONCEPTS`], each cell to `years`, and holds
 /// the amount in minor-free full units plus its ISO currency.
@@ -349,6 +417,77 @@ pub fn get_company(id: i64) -> rusqlite::Result<Option<CompanyDetail>> {
         years: raw.years,
         rows,
         filings,
+    }))
+}
+
+/// One exported fact: the raw tag and value with its source filing URL.
+#[derive(serde::Serialize)]
+pub struct ExportFact {
+    pub concept: String,
+    pub fiscal_year: String,
+    pub value: String,
+    pub currency: Option<String>,
+    pub source_url: Option<String>,
+}
+
+/// A company's full parsed facts for export (raw values, not display-formatted).
+#[derive(serde::Serialize)]
+pub struct CompanyExport {
+    pub id: i64,
+    pub name: String,
+    pub lei: Option<String>,
+    pub country: Option<String>,
+    pub facts: Vec<ExportFact>,
+}
+
+/// All parsed facts for one company, with source URLs, for CSV/JSON export.
+pub fn company_export(id: i64) -> rusqlite::Result<Option<CompanyExport>> {
+    let conn = open_db()?;
+    let meta = conn
+        .query_row(
+            "SELECT name, lei, country FROM entities WHERE id = ?1",
+            [id],
+            |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, Option<String>>(1)?,
+                    r.get::<_, Option<String>>(2)?,
+                ))
+            },
+        )
+        .optional()?;
+    let Some((name, lei, country)) = meta else {
+        return Ok(None);
+    };
+
+    let mut stmt = conn.prepare(
+        "SELECT x.concept,
+                strftime('%Y', x.reporting_date, '-182 days') AS fy,
+                x.value, x.currency, f.xbrl_json_url
+         FROM financial_facts x
+         LEFT JOIN filings f
+           ON f.entity_id = x.entity_id AND f.reporting_date = x.reporting_date
+         WHERE x.entity_id = ?1
+         ORDER BY fy DESC, x.concept",
+    )?;
+    let facts = stmt
+        .query_map([id], |r| {
+            Ok(ExportFact {
+                concept: r.get(0)?,
+                fiscal_year: r.get::<_, Option<String>>(1)?.unwrap_or_default(),
+                value: r.get::<_, Option<String>>(2)?.unwrap_or_default(),
+                currency: r.get(3)?,
+                source_url: r.get(4)?,
+            })
+        })?
+        .collect::<rusqlite::Result<_>>()?;
+
+    Ok(Some(CompanyExport {
+        id,
+        name,
+        lei,
+        country,
+        facts,
     }))
 }
 

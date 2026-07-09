@@ -7,6 +7,7 @@ use crate::components::Header;
 use crate::pages::company::CompanyPage;
 use crate::pages::compare::ComparePage;
 use crate::pages::coverage::CoveragePage;
+use crate::pages::extensions::ExtensionsPage;
 use crate::pages::quality::QualityPage;
 use crate::pages::search::SearchPage;
 
@@ -47,6 +48,7 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/compare") view=ComparePage />
                     <Route path=path!("/coverage") view=CoveragePage />
                     <Route path=path!("/quality") view=QualityPage />
+                    <Route path=path!("/extensions") view=ExtensionsPage />
                 </Routes>
             </main>
             <footer class="site-footer">

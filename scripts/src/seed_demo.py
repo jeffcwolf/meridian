@@ -74,13 +74,25 @@ DEMO: list[tuple[str, str, str, str, dict[int, dict[str, str]]]] = [
 
 BASE_URL = "https://filings.xbrl.org"
 
+# Illustrative company-specific extension tags {name: [(concept, prefix, value)]}.
+DEMO_EXTENSIONS: dict[str, list[tuple[str, str, str]]] = {
+    "Banco Santander SA": [
+        ("san:UnderlyingProfit", "san", "12392000000"),
+        ("san:EquityAttributableToOwnersExcludingAOCI", "san", "135196000000"),
+    ],
+    "Iberdrola SA": [("iber:AdjustedNetProfit", "iber", "5079000000")],
+    "Enel SpA": [("enel:OrdinaryEbitda", "enel", "22010000000")],
+}
+
 
 def main() -> None:
     conn = db.connect()
     db.init_db(conn)
 
+    entity_ids: dict[str, int] = {}
     for name, lei, country, currency, years in DEMO:
         entity_id = db.upsert_entity(conn, name, lei, country)
+        entity_ids[name] = entity_id
         for year, facts in years.items():
             reporting_date = f"{year}-12-31"
             slug = f"{lei}-{year}-12-31-ESEF-{country}-0"
@@ -108,6 +120,21 @@ def main() -> None:
                     value=value,
                     currency=currency,
                 )
+
+    for name, extensions in DEMO_EXTENSIONS.items():
+        entity_id = entity_ids.get(name)
+        if entity_id is None:
+            continue
+        for concept, prefix, value in extensions:
+            db.upsert_extension(
+                conn,
+                entity_id=entity_id,
+                reporting_date="2023-12-31",
+                concept=concept,
+                prefix=prefix,
+                value=value,
+                currency="EUR",
+            )
 
     # Illustrative ECB annual-average rates (units per EUR) so the comparator's
     # currency conversion works offline.
