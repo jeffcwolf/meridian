@@ -21,11 +21,18 @@ from parse_xbrl_json import CORE_DIMENSIONS, _period_end, download_report
 
 # Logical row -> accepted tags (extend this from what the report reveals).
 TARGET_ROWS: dict[str, list[str]] = {
-    "Revenue": ["ifrs-full:Revenue", "ifrs-full:RevenueFromContractsWithCustomers"],
+    "Revenue": [
+        "ifrs-full:Revenue",
+        "ifrs-full:RevenueFromContractsWithCustomers",
+        "ifrs-full:RevenueFromSaleOfGoods",
+    ],
     "ProfitLoss": ["ifrs-full:ProfitLoss"],
     "Assets": ["ifrs-full:Assets"],
     "Equity": ["ifrs-full:Equity", "ifrs-full:EquityAttributableToOwnersOfParent"],
-    "OpCashFlow": ["ifrs-full:CashFlowsFromUsedInOperatingActivities"],
+    "OpCashFlow": [
+        "ifrs-full:CashFlowsFromUsedInOperatingActivities",
+        "ifrs-full:CashFlowsFromUsedInOperatingActivitiesContinuingOperations",
+    ],
 }
 
 

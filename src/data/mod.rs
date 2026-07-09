@@ -18,6 +18,7 @@ const CONCEPTS: [(&str, &[&str]); 5] = [
         &[
             "ifrs-full:Revenue",
             "ifrs-full:RevenueFromContractsWithCustomers",
+            "ifrs-full:RevenueFromSaleOfGoods",
         ],
     ),
     ("Profit (loss) for the period", &["ifrs-full:ProfitLoss"]),
@@ -31,7 +32,10 @@ const CONCEPTS: [(&str, &[&str]); 5] = [
     ),
     (
         "Cash flow from operating activities",
-        &["ifrs-full:CashFlowsFromUsedInOperatingActivities"],
+        &[
+            "ifrs-full:CashFlowsFromUsedInOperatingActivities",
+            "ifrs-full:CashFlowsFromUsedInOperatingActivitiesContinuingOperations",
+        ],
     ),
 ];
 

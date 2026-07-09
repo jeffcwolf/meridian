@@ -27,13 +27,16 @@ import db
 TARGET_CONCEPTS: set[str] = {
     "ifrs-full:Revenue",
     "ifrs-full:RevenueFromContractsWithCustomers",
+    "ifrs-full:RevenueFromSaleOfGoods",
     "ifrs-full:Assets",
     "ifrs-full:ProfitLoss",
     "ifrs-full:Equity",
     "ifrs-full:EquityAttributableToOwnersOfParent",
     # The IFRS taxonomy element is "From(Used In)" — there is no plain
-    # CashFlowsFromOperatingActivities element.
+    # CashFlowsFromOperatingActivities element. Issuers with discontinued
+    # operations tag the "ContinuingOperations" variant.
     "ifrs-full:CashFlowsFromUsedInOperatingActivities",
+    "ifrs-full:CashFlowsFromUsedInOperatingActivitiesContinuingOperations",
 }
 
 # xBRL-JSON built-in ("core") dimensions. A fact carrying *only* these is a
