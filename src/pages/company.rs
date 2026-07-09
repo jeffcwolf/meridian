@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_meta::Title;
 use leptos_router::hooks::use_params_map;
 
 use crate::model::CompanyDetail;
@@ -64,6 +65,7 @@ fn CompanyView(company: CompanyDetail) -> impl IntoView {
         ..
     } = company;
 
+    let page_title = format!("{name} · Meridian");
     let ccy = currency.clone().unwrap_or_else(|| "—".into());
     let has_filings = !filings.is_empty();
     let has_financials =
@@ -126,6 +128,7 @@ fn CompanyView(company: CompanyDetail) -> impl IntoView {
 
     view! {
         <article class="company">
+            <Title text=page_title />
             <header class="company-head">
                 <h1>{name}</h1>
                 <div class="company-meta">

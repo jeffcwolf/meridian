@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_meta::Title;
 use leptos_router::hooks::use_query_map;
 
 use crate::model::CompanySummary;
@@ -38,6 +39,7 @@ pub fn SearchPage() -> impl IntoView {
     let companies = Resource::new_blocking(active_q, |q| async move { search_companies(q).await });
 
     view! {
+        <Title text="Meridian — European ESEF filing explorer" />
         <section class="page-intro">
             <h1>"European ESEF filings, made comparable"</h1>
             <p class="lead">

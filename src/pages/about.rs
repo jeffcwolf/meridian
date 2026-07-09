@@ -1,10 +1,12 @@
 use leptos::prelude::*;
+use leptos_meta::Title;
 
 /// The portfolio narrative: what Meridian is, why it exists, how it is built,
 /// and what it demonstrates. Written for a first-time visitor (e.g. a recruiter).
 #[component]
 pub fn AboutPage() -> impl IntoView {
     view! {
+        <Title text="About · Meridian" />
         <article class="prose">
             <section class="page-intro">
                 <h1>"About Meridian"</h1>

@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_meta::Title;
 
 use crate::components::Stat;
 use crate::model::QualitySummary;
@@ -14,6 +15,7 @@ pub fn QualityPage() -> impl IntoView {
     let data = Resource::new_blocking(|| (), |_| async { quality_data().await });
 
     view! {
+        <Title text="Data quality · Meridian" />
         <section class="page-intro">
             <h1>"Data quality"</h1>
             <p class="muted">

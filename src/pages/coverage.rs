@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_meta::Title;
 
 use crate::components::Stat;
 use crate::model::CoverageSummary;
@@ -14,6 +15,7 @@ pub fn CoveragePage() -> impl IntoView {
     let data = Resource::new_blocking(|| (), |_| async { coverage_data().await });
 
     view! {
+        <Title text="Coverage · Meridian" />
         <section class="page-intro">
             <h1>"Country coverage"</h1>
             <p class="muted">

@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_meta::Title;
 
 use crate::components::Stat;
 use crate::model::ExtensionSummary;
@@ -14,6 +15,7 @@ pub fn ExtensionsPage() -> impl IntoView {
     let data = Resource::new_blocking(|| (), |_| async { extension_data().await });
 
     view! {
+        <Title text="Extension tags · Meridian" />
         <section class="page-intro">
             <h1>"Extension tags"</h1>
             <p class="muted">
