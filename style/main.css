@@ -125,6 +125,11 @@ h2 {
     letter-spacing: 0.02em;
 }
 
+.site-nav {
+    display: flex;
+    gap: 1.4rem;
+}
+
 .site-nav a {
     color: #d7e3ec;
     font-size: 0.9rem;
@@ -406,6 +411,89 @@ main.container {
 .badge-warn {
     background: var(--warn-bg);
     color: var(--warn-fg);
+}
+
+/* ---- Comparator ---- */
+
+.compare-form {
+    margin: 1.25rem 0 1.75rem;
+    padding: 1.1rem 1.2rem;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.checks {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0.4rem 1.25rem;
+}
+
+.check {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    font-size: 0.9rem;
+    padding: 0.15rem 0;
+    cursor: pointer;
+}
+
+.check input {
+    margin: 0;
+}
+
+.check .muted {
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+}
+
+.compare-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--line);
+}
+
+.year-picker {
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+}
+
+.year-picker select {
+    margin-left: 0.4rem;
+    padding: 0.4rem 0.5rem;
+    font: inherit;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    background: var(--panel);
+}
+
+.compare-table thead th.num {
+    text-align: right;
+}
+
+.compare-table thead th.num a {
+    display: block;
+    font-weight: 600;
+}
+
+.cmp-sub {
+    display: block;
+    font-weight: 400;
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: none;
+    letter-spacing: 0.02em;
+    margin-top: 0.15rem;
+}
+
+.compare-table th[scope="row"] {
+    font-weight: 500;
+    color: var(--ink);
+    white-space: nowrap;
 }
 
 /* ---- Coverage gap ---- */

@@ -13,6 +13,7 @@ pub fn Header() -> impl IntoView {
                 </a>
                 <nav class="site-nav">
                     <a href="/">"Search"</a>
+                    <a href="/compare">"Compare"</a>
                 </nav>
             </div>
         </header>

@@ -5,6 +5,7 @@ use leptos_router::path;
 
 use crate::components::Header;
 use crate::pages::company::CompanyPage;
+use crate::pages::compare::ComparePage;
 use crate::pages::search::SearchPage;
 
 /// The HTML document shell rendered on the server for every route.
@@ -41,6 +42,7 @@ pub fn App() -> impl IntoView {
                 <Routes fallback=|| view! { <NotFound /> }>
                     <Route path=path!("/") view=SearchPage />
                     <Route path=path!("/company/:id") view=CompanyPage />
+                    <Route path=path!("/compare") view=ComparePage />
                 </Routes>
             </main>
             <footer class="site-footer">

@@ -1,11 +1,13 @@
 //! Server-side reads from the SQLite cache produced by the Python pipeline.
 //! Compiled only in the `ssr` build (rusqlite is not available in wasm).
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use rusqlite::{Connection, OptionalExtension};
 
-use crate::model::{CompanyDetail, CompanySummary, ConceptRow, FilingRow};
+use crate::model::{
+    CompanyDetail, CompanySummary, CompareColumn, CompareTable, ConceptRow, FilingRow,
+};
 
 /// Headline IFRS rows in display order: a label plus the accepted concept tags
 /// (primary first). Issuers tag the same line differently, so each row coalesces
@@ -186,6 +188,56 @@ pub fn get_company(id: i64) -> rusqlite::Result<Option<CompanyDetail>> {
         rows,
         filings,
     }))
+}
+
+/// Align several companies' IFRS figures for one fiscal year, one column each.
+/// Unknown ids are skipped. `fy` defaults to the most recent year available
+/// across the selected companies.
+pub fn compare(ids: &[i64], fy: Option<&str>) -> rusqlite::Result<CompareTable> {
+    let details: Vec<CompanyDetail> = ids
+        .iter()
+        .filter_map(|&id| get_company(id).transpose())
+        .collect::<rusqlite::Result<_>>()?;
+
+    let mut year_set: BTreeSet<String> = BTreeSet::new();
+    for d in &details {
+        year_set.extend(d.years.iter().cloned());
+    }
+    let years: Vec<String> = year_set.into_iter().rev().collect(); // most recent first
+
+    let fy = fy
+        .map(str::to_string)
+        .filter(|s| years.contains(s))
+        .or_else(|| years.first().cloned())
+        .unwrap_or_default();
+
+    let labels: Vec<String> = CONCEPTS.iter().map(|(l, _)| l.to_string()).collect();
+
+    let columns = details
+        .into_iter()
+        .map(|d| {
+            let idx = d.years.iter().position(|y| *y == fy);
+            let cells = d
+                .rows
+                .iter()
+                .map(|row| idx.and_then(|i| row.cells.get(i).cloned().flatten()))
+                .collect();
+            CompareColumn {
+                id: d.id,
+                name: d.name,
+                country: d.country,
+                currency: d.currency,
+                cells,
+            }
+        })
+        .collect();
+
+    Ok(CompareTable {
+        fy,
+        years,
+        labels,
+        columns,
+    })
 }
 
 /// Format a full-currency-unit integer string as a thousands-grouped figure in

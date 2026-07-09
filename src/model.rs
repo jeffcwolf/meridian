@@ -35,6 +35,27 @@ pub struct ConceptRow {
     pub cells: Vec<Option<String>>,
 }
 
+/// One company's column in the cross-country comparator.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CompareColumn {
+    pub id: i64,
+    pub name: String,
+    pub country: Option<String>,
+    pub currency: Option<String>,
+    /// Formatted values aligned to [`CompareTable::labels`]; `None` where absent.
+    pub cells: Vec<Option<String>>,
+}
+
+/// The comparator table: IFRS concept rows × selected companies for one year.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CompareTable {
+    pub fy: String,
+    /// Fiscal years available across the selected companies (for the picker).
+    pub years: Vec<String>,
+    pub labels: Vec<String>,
+    pub columns: Vec<CompareColumn>,
+}
+
 /// Everything the company detail page needs.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CompanyDetail {
