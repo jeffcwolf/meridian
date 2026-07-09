@@ -25,13 +25,8 @@ CONCEPTS = {
 
 # name, LEI, country, currency, {year: {concept: value_in_full_currency_units}}
 DEMO: list[tuple[str, str, str, str, dict[int, dict[str, str]]]] = [
-    ("Siemens AG", "W38RGI023SG3JQ7VG076", "DE", "EUR", {
-        2023: {"rev": "77769000000", "assets": "141344000000", "pl": "8534000000",
-               "eq": "63699000000", "cfo": "10171000000"},
-        2022: {"rev": "71968000000", "assets": "135335000000", "pl": "4409000000",
-               "eq": "56289000000", "cfo": "8264000000"},
-    }),
     # German issuers: valid LEI but no discoverable filings (coverage gap demo).
+    ("Siemens AG", "W38RGI023SG3JQ7VG076", "DE", "EUR", {}),
     ("SAP SE", "5299007FMCAENG2ZLB13", "DE", "EUR", {}),
     ("Volkswagen AG", "529900NNUPAGGOM1KL20", "DE", "EUR", {}),
     ("LVMH Moet Hennessy Louis Vuitton SE", "969500FIF7GLA1WEDL01", "FR", "EUR", {
@@ -89,6 +84,9 @@ def main() -> None:
         for year, facts in years.items():
             reporting_date = f"{year}-12-31"
             slug = f"{lei}-{year}-12-31-ESEF-{country}-0"
+            errors = (entity_id + year) % 3
+            warnings = (entity_id * 2 + year) % 6
+            inconsistencies = year % 4
             db.upsert_filing(
                 conn,
                 entity_id=entity_id,
@@ -96,7 +94,10 @@ def main() -> None:
                 filing_url=f"{BASE_URL}/{slug}/reports/ixbrl-viewer.html",
                 xbrl_json_url=f"{BASE_URL}/{slug}/reports/report.json",
                 country=country,
-                validation_message_count=(year % 7),
+                validation_message_count=errors + warnings + inconsistencies,
+                error_count=errors,
+                warning_count=warnings,
+                inconsistency_count=inconsistencies,
             )
             for short, value in facts.items():
                 db.upsert_fact(

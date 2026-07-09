@@ -150,6 +150,9 @@ def _store_filing(conn, entity_id: int, filing: xf.Filing) -> None:
         xbrl_json_url=filing.json_url,
         country=filing.country,
         validation_message_count=_validation_count(filing),
+        error_count=filing.error_count or 0,
+        warning_count=filing.warning_count or 0,
+        inconsistency_count=filing.inconsistency_count or 0,
     )
 
 

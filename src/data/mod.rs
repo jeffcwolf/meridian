@@ -6,8 +6,36 @@ use std::collections::{BTreeSet, HashMap};
 use rusqlite::{Connection, OptionalExtension};
 
 use crate::model::{
-    CompanyDetail, CompanySummary, CompareColumn, CompareTable, ConceptRow, FilingRow,
+    CompanyDetail, CompanySummary, CompareColumn, CompareTable, ConceptRow, CoverageRow,
+    CoverageSummary, FilingRow, QualityByCountry, QualitySummary,
 };
+
+/// ISO 3166-1 alpha-2 -> country name for the jurisdictions we surface.
+fn country_name(code: &str) -> String {
+    match code {
+        "AT" => "Austria",
+        "BE" => "Belgium",
+        "CH" => "Switzerland",
+        "CZ" => "Czechia",
+        "DE" => "Germany",
+        "DK" => "Denmark",
+        "ES" => "Spain",
+        "FI" => "Finland",
+        "FR" => "France",
+        "GB" => "United Kingdom",
+        "GR" => "Greece",
+        "IE" => "Ireland",
+        "IT" => "Italy",
+        "LU" => "Luxembourg",
+        "NL" => "Netherlands",
+        "NO" => "Norway",
+        "PL" => "Poland",
+        "PT" => "Portugal",
+        "SE" => "Sweden",
+        other => other,
+    }
+    .to_string()
+}
 
 /// Headline IFRS rows in display order: a label plus the accepted concept tags
 /// (primary first). Issuers tag the same line differently, so each row coalesces
@@ -94,6 +122,90 @@ pub fn list_companies(query: Option<&str>) -> rusqlite::Result<Vec<CompanySummar
         })
     })?;
     rows.collect()
+}
+
+/// Per-country coverage across the seeded universe — how many issuers, how many
+/// actually have discoverable filings, and where the index has gaps.
+pub fn coverage() -> rusqlite::Result<CoverageSummary> {
+    let conn = open_db()?;
+    let mut stmt = conn.prepare(
+        "SELECT e.country,
+                COUNT(DISTINCT e.id) AS entities,
+                COUNT(DISTINCT CASE WHEN f.id IS NOT NULL THEN e.id END) AS with_filings,
+                COUNT(f.id) AS filings
+         FROM entities e
+         LEFT JOIN filings f ON f.entity_id = e.id
+         GROUP BY e.country
+         ORDER BY entities DESC, e.country",
+    )?;
+    let rows: Vec<CoverageRow> = stmt
+        .query_map([], |r| {
+            let country: String = r.get::<_, Option<String>>(0)?.unwrap_or_default();
+            let entities: i64 = r.get(1)?;
+            let with_filings: i64 = r.get(2)?;
+            let filings: i64 = r.get(3)?;
+            Ok(CoverageRow {
+                country_name: country_name(&country),
+                indexed: with_filings > 0,
+                country,
+                entities,
+                entities_with_filings: with_filings,
+                filings,
+            })
+        })?
+        .collect::<rusqlite::Result<_>>()?;
+
+    let countries = rows.len() as i64;
+    let covered = rows.iter().filter(|r| r.indexed).count() as i64;
+    let entities = rows.iter().map(|r| r.entities).sum();
+    let filings = rows.iter().map(|r| r.filings).sum();
+    Ok(CoverageSummary {
+        countries,
+        covered,
+        gaps: countries - covered,
+        entities,
+        filings,
+        rows,
+    })
+}
+
+/// Validation-message quality aggregated by country, plus overall totals.
+pub fn quality_summary() -> rusqlite::Result<QualitySummary> {
+    let conn = open_db()?;
+    let mut stmt = conn.prepare(
+        "SELECT f.country,
+                COUNT(f.id) AS filings,
+                COALESCE(SUM(f.error_count), 0) AS errors,
+                COALESCE(SUM(f.warning_count), 0) AS warnings,
+                COALESCE(SUM(f.inconsistency_count), 0) AS inconsistencies,
+                COALESCE(SUM(CASE WHEN f.validation_message_count = 0 THEN 1 ELSE 0 END), 0) AS clean
+         FROM filings f
+         GROUP BY f.country
+         ORDER BY errors DESC, warnings DESC, f.country",
+    )?;
+    let by_country: Vec<QualityByCountry> = stmt
+        .query_map([], |r| {
+            let country: String = r.get::<_, Option<String>>(0)?.unwrap_or_default();
+            Ok(QualityByCountry {
+                country_name: country_name(&country),
+                country,
+                filings: r.get(1)?,
+                errors: r.get(2)?,
+                warnings: r.get(3)?,
+                inconsistencies: r.get(4)?,
+                clean: r.get(5)?,
+            })
+        })?
+        .collect::<rusqlite::Result<_>>()?;
+
+    Ok(QualitySummary {
+        filings: by_country.iter().map(|c| c.filings).sum(),
+        errors: by_country.iter().map(|c| c.errors).sum(),
+        warnings: by_country.iter().map(|c| c.warnings).sum(),
+        inconsistencies: by_country.iter().map(|c| c.inconsistencies).sum(),
+        clean: by_country.iter().map(|c| c.clean).sum(),
+        by_country,
+    })
 }
 
 /// A company's raw (unformatted) figures, shared by the detail and compare

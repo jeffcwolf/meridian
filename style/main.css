@@ -500,6 +500,73 @@ main.container {
     white-space: nowrap;
 }
 
+/* ---- Stat tiles & dashboards ---- */
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.9rem;
+    margin: 1.25rem 0 1.75rem;
+}
+
+.stat {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 0.9rem 1rem;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--navy);
+    letter-spacing: -0.01em;
+}
+
+.stat-warn .stat-value {
+    color: var(--warn-fg);
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-top: 0.2rem;
+}
+
+.bar-cell {
+    width: 28%;
+    min-width: 110px;
+}
+
+.bar {
+    height: 8px;
+    background: var(--panel-alt);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    background: var(--navy);
+    border-radius: 999px;
+}
+
+.sev-error {
+    color: #b3261e;
+    font-weight: 600;
+}
+
+.sev-warn {
+    color: var(--warn-fg);
+    font-weight: 600;
+}
+
 /* ---- Coverage gap ---- */
 
 .data-table tbody tr.row-empty td {

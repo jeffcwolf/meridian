@@ -58,6 +58,52 @@ pub struct CompareTable {
     pub base: Option<String>,
 }
 
+/// One country's row in the coverage map.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CoverageRow {
+    pub country: String,
+    pub country_name: String,
+    pub entities: i64,
+    pub entities_with_filings: i64,
+    pub filings: i64,
+    /// Whether the filings.xbrl.org index covers this jurisdiction at all.
+    pub indexed: bool,
+}
+
+/// Country coverage across the seeded universe.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CoverageSummary {
+    pub rows: Vec<CoverageRow>,
+    pub countries: i64,
+    pub covered: i64,
+    pub gaps: i64,
+    pub entities: i64,
+    pub filings: i64,
+}
+
+/// One country's aggregated data-quality figures.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct QualityByCountry {
+    pub country: String,
+    pub country_name: String,
+    pub filings: i64,
+    pub errors: i64,
+    pub warnings: i64,
+    pub inconsistencies: i64,
+    pub clean: i64,
+}
+
+/// Validation-message quality across all filings.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct QualitySummary {
+    pub by_country: Vec<QualityByCountry>,
+    pub filings: i64,
+    pub errors: i64,
+    pub warnings: i64,
+    pub inconsistencies: i64,
+    pub clean: i64,
+}
+
 /// Everything the company detail page needs.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CompanyDetail {

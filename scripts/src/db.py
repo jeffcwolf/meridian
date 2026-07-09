@@ -35,6 +35,9 @@ CREATE TABLE IF NOT EXISTS filings (
     xbrl_json_url            TEXT,
     country                  TEXT,
     validation_message_count INTEGER DEFAULT 0,
+    error_count              INTEGER DEFAULT 0,
+    warning_count            INTEGER DEFAULT 0,
+    inconsistency_count      INTEGER DEFAULT 0,
     UNIQUE(entity_id, reporting_date)
 );
 
@@ -72,6 +75,11 @@ def connect() -> sqlite3.Connection:
 def init_db(conn: sqlite3.Connection) -> None:
     """Create all tables and indexes if they do not already exist."""
     conn.executescript(SCHEMA)
+    # Lightweight migration: add severity columns to a pre-existing filings table.
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(filings)")}
+    for column in ("error_count", "warning_count", "inconsistency_count"):
+        if column not in existing:
+            conn.execute(f"ALTER TABLE filings ADD COLUMN {column} INTEGER DEFAULT 0")
     conn.commit()
 
 
@@ -121,20 +129,27 @@ def upsert_filing(
     xbrl_json_url: str | None,
     country: str | None,
     validation_message_count: int,
+    error_count: int = 0,
+    warning_count: int = 0,
+    inconsistency_count: int = 0,
 ) -> None:
     """Insert or update a filing keyed by (entity_id, reporting_date)."""
     conn.execute(
         """
         INSERT INTO filings (
             entity_id, reporting_date, filing_url, xbrl_json_url,
-            country, validation_message_count
+            country, validation_message_count,
+            error_count, warning_count, inconsistency_count
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(entity_id, reporting_date) DO UPDATE SET
             filing_url = excluded.filing_url,
             xbrl_json_url = excluded.xbrl_json_url,
             country = excluded.country,
-            validation_message_count = excluded.validation_message_count
+            validation_message_count = excluded.validation_message_count,
+            error_count = excluded.error_count,
+            warning_count = excluded.warning_count,
+            inconsistency_count = excluded.inconsistency_count
         """,
         (
             entity_id,
@@ -143,6 +158,9 @@ def upsert_filing(
             xbrl_json_url,
             country,
             validation_message_count,
+            error_count,
+            warning_count,
+            inconsistency_count,
         ),
     )
     conn.commit()
