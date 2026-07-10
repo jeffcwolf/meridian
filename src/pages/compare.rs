@@ -10,8 +10,8 @@ use crate::pages::search::search_companies;
 
 /// Server function backing the comparator. Returns `None` for fewer than two
 /// companies (nothing to compare yet).
-#[server(CompareData)]
-pub async fn compare_data(
+#[server(FetchComparison)]
+pub async fn fetch_comparison(
     /// Entity row ids of the companies to compare (two or more).
     ids: Vec<i64>,
     /// Fiscal year to show (`YYYY`); defaults to the latest shared year.
@@ -50,7 +50,7 @@ pub fn ComparePage() -> impl IntoView {
     let all = Resource::new_blocking(|| (), |_| async { search_companies(None).await });
     let table = Resource::new_blocking(
         move || (ids(), fy(), base()),
-        |(ids, fy, base)| async move { compare_data(ids, fy, base).await },
+        |(ids, fy, base)| async move { fetch_comparison(ids, fy, base).await },
     );
 
     view! {

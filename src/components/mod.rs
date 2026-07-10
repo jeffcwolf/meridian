@@ -1,5 +1,5 @@
 //! Small reusable UI components shared across pages: the header, the
-//! headline-statistic tile, and a `resourced` loading/error wrapper.
+//! headline-statistic tile, and a `resource_view` loading/error wrapper.
 
 use leptos::prelude::*;
 
@@ -28,7 +28,7 @@ pub fn Stat(
 /// error paragraph if the server function fails. `success` renders the resolved
 /// value. Pages whose fetch has a distinct shape (an `Option` payload, a "not
 /// found" case) render their own `Suspense` instead.
-pub(crate) fn resourced<T, IV, F>(
+pub(crate) fn resource_view<T, IV, F>(
     resource: Resource<Result<T, ServerFnError>>,
     loading: &'static str,
     success: F,
