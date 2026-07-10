@@ -8,7 +8,7 @@ foreign currency per 1 EUR, so an amount in CUR converts to EUR by dividing.
 Run locally (needs outbound access to data-api.ecb.europa.eu), after
 fetch_filings + parse_xbrl_json have populated the currencies:
 
-    cd scripts && uv run python src/fetch_fx_rates.py
+    cd pipeline && uv run python src/fetch_fx_rates.py
 """
 
 from __future__ import annotations

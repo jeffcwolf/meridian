@@ -5,7 +5,7 @@ annual XBRL-JSON per entity and shows, per company, which headline rows are
 present and under which tag — plus, for anything missing, the largest monetary
 core-dimension facts so we can see what tag the issuer used instead.
 
-    cd scripts && uv run python src/diagnose_concepts.py
+    cd pipeline && uv run python src/diagnose_concepts.py
 
 Paste the output back and we can build a complete concept/alias map in one go.
 """

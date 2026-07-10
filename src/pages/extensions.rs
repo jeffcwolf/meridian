@@ -1,18 +1,22 @@
+//! The extension-tag tracker: company-specific taxonomy extensions, grouped by
+//! issuer and by concept.
+
 use leptos::prelude::*;
 use leptos_meta::Title;
 
-use crate::components::Stat;
+use crate::components::{resource_view, Stat};
 use crate::model::ExtensionSummary;
 
 /// Server function backing the extension-tag tracker.
-#[server(ExtensionData)]
-pub async fn extension_data() -> Result<ExtensionSummary, ServerFnError> {
+#[server(FetchExtensions)]
+pub async fn fetch_extensions() -> Result<ExtensionSummary, ServerFnError> {
     crate::data::extension_summary().map_err(|e| ServerFnError::new(e.to_string()))
 }
 
+/// Extensions page: renders extension usage by issuer and by concept.
 #[component]
 pub fn ExtensionsPage() -> impl IntoView {
-    let data = Resource::new_blocking(|| (), |_| async { extension_data().await });
+    let data = Resource::new_blocking(|| (), |_| async { fetch_extensions().await });
 
     view! {
         <Title text="Extension tags · Meridian" />
@@ -25,17 +29,7 @@ pub fn ExtensionsPage() -> impl IntoView {
             </p>
         </section>
 
-        <Suspense fallback=move || {
-            view! { <p class="muted loading">"Loading…"</p> }
-        }>
-            {move || {
-                data.get()
-                    .map(|res| match res {
-                        Ok(e) => view! { <ExtensionView e=e /> }.into_any(),
-                        Err(e) => view! { <p class="error">{e.to_string()}</p> }.into_any(),
-                    })
-            }}
-        </Suspense>
+        {resource_view(data, "Loading…", |e| view! { <ExtensionView e=e /> })}
     }
 }
 

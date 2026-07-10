@@ -1,18 +1,22 @@
+//! The coverage map: how many entities and filings are cached per jurisdiction,
+//! and which jurisdictions the index omits.
+
 use leptos::prelude::*;
 use leptos_meta::Title;
 
-use crate::components::Stat;
+use crate::components::{resource_view, Stat};
 use crate::model::CoverageSummary;
 
 /// Server function backing the coverage map.
-#[server(CoverageData)]
-pub async fn coverage_data() -> Result<CoverageSummary, ServerFnError> {
+#[server(FetchCoverage)]
+pub async fn fetch_coverage() -> Result<CoverageSummary, ServerFnError> {
     crate::data::coverage().map_err(|e| ServerFnError::new(e.to_string()))
 }
 
+/// Coverage page: renders the per-country coverage table and summary tiles.
 #[component]
 pub fn CoveragePage() -> impl IntoView {
-    let data = Resource::new_blocking(|| (), |_| async { coverage_data().await });
+    let data = Resource::new_blocking(|| (), |_| async { fetch_coverage().await });
 
     view! {
         <Title text="Coverage · Meridian" />
@@ -25,17 +29,7 @@ pub fn CoveragePage() -> impl IntoView {
             </p>
         </section>
 
-        <Suspense fallback=move || {
-            view! { <p class="muted loading">"Loading…"</p> }
-        }>
-            {move || {
-                data.get()
-                    .map(|res| match res {
-                        Ok(c) => view! { <CoverageView c=c /> }.into_any(),
-                        Err(e) => view! { <p class="error">{e.to_string()}</p> }.into_any(),
-                    })
-            }}
-        </Suspense>
+        {resource_view(data, "Loading…", |c| view! { <CoverageView c=c /> })}
     }
 }
 

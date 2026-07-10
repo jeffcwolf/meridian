@@ -6,7 +6,7 @@ Pipeline step 1: populate the ``entities`` and ``filings`` tables in
 
 Run locally (needs outbound access to filings.xbrl.org):
 
-    cd scripts && uv run python src/fetch_filings.py
+    cd pipeline && uv run python src/fetch_filings.py
 
 Resolution strategy: rather than resolving names through GLEIF (whose
 full-text ranking surfaces subsidiaries and misses parents), we scan each
@@ -100,10 +100,40 @@ SEED: list[dict[str, str]] = [
 # "bank", "group"/"groep" and "holding" are kept — they disambiguate the listed
 # parent from siblings (e.g. "ING Groep" vs "ING Bank").
 STOPWORDS = {
-    "ag", "se", "sa", "spa", "nv", "oyj", "oy", "plc", "ab", "asa", "abp",
-    "kgaa", "aktiengesellschaft", "aktiebolag", "co", "company", "corporation",
-    "corp", "inc", "ltd", "limited", "the", "and", "of", "publ", "societe",
-    "europeenne", "anonyme", "de", "del", "di", "van", "von", "het",
+    "ag",
+    "se",
+    "sa",
+    "spa",
+    "nv",
+    "oyj",
+    "oy",
+    "plc",
+    "ab",
+    "asa",
+    "abp",
+    "kgaa",
+    "aktiengesellschaft",
+    "aktiebolag",
+    "co",
+    "company",
+    "corporation",
+    "corp",
+    "inc",
+    "ltd",
+    "limited",
+    "the",
+    "and",
+    "of",
+    "publ",
+    "societe",
+    "europeenne",
+    "anonyme",
+    "de",
+    "del",
+    "di",
+    "van",
+    "von",
+    "het",
 }
 
 

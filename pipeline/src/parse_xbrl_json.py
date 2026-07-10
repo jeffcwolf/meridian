@@ -6,7 +6,7 @@ handful of headline IFRS concepts into the ``financial_facts`` table.
 
 Run locally (needs outbound access to filings.xbrl.org):
 
-    cd scripts && uv run python src/parse_xbrl_json.py
+    cd pipeline && uv run python src/parse_xbrl_json.py
 
 The script is idempotent — re-running refreshes the same facts.
 """
@@ -107,7 +107,9 @@ def extract_extensions(report: dict) -> dict[str, tuple[str, str, str | None]]:
     custom tags an issuer defined where IFRS did not fit.
     """
     facts = report.get("facts", {})
-    best: dict[str, tuple[str, str, str, str | None]] = {}  # concept -> (end, prefix, value, ccy)
+    best: dict[
+        str, tuple[str, str, str, str | None]
+    ] = {}  # concept -> (end, prefix, value, ccy)
     for fact in facts.values():
         dims = fact.get("dimensions", {})
         concept = dims.get("concept")
@@ -137,7 +139,7 @@ def download_report(client: httpx.Client, url: str, retries: int = 3) -> dict | 
             resp.raise_for_status()
             return resp.json()
         except (httpx.HTTPError, ValueError) as exc:
-            wait = 2 ** attempt
+            wait = 2**attempt
             if attempt == retries - 1:
                 print(f"    ! failed ({exc}); giving up")
                 return None

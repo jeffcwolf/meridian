@@ -1,18 +1,22 @@
+//! The data-quality dashboard: validation-message counts (errors, warnings,
+//! inconsistencies) across filings, by country.
+
 use leptos::prelude::*;
 use leptos_meta::Title;
 
-use crate::components::Stat;
+use crate::components::{resource_view, Stat};
 use crate::model::QualitySummary;
 
 /// Server function backing the data-quality dashboard.
-#[server(QualityData)]
-pub async fn quality_data() -> Result<QualitySummary, ServerFnError> {
+#[server(FetchQuality)]
+pub async fn fetch_quality() -> Result<QualitySummary, ServerFnError> {
     crate::data::quality_summary().map_err(|e| ServerFnError::new(e.to_string()))
 }
 
+/// Data-quality page: renders validation-message counts by country.
 #[component]
 pub fn QualityPage() -> impl IntoView {
-    let data = Resource::new_blocking(|| (), |_| async { quality_data().await });
+    let data = Resource::new_blocking(|| (), |_| async { fetch_quality().await });
 
     view! {
         <Title text="Data quality · Meridian" />
@@ -24,17 +28,7 @@ pub fn QualityPage() -> impl IntoView {
             </p>
         </section>
 
-        <Suspense fallback=move || {
-            view! { <p class="muted loading">"Loading…"</p> }
-        }>
-            {move || {
-                data.get()
-                    .map(|res| match res {
-                        Ok(q) => view! { <QualityView q=q /> }.into_any(),
-                        Err(e) => view! { <p class="error">{e.to_string()}</p> }.into_any(),
-                    })
-            }}
-        </Suspense>
+        {resource_view(data, "Loading…", |q| view! { <QualityView q=q /> })}
     }
 }
 

@@ -12,6 +12,9 @@ mod dashboards;
 mod format;
 mod reads;
 
+#[cfg(test)]
+mod tests;
+
 use rusqlite::Connection;
 
 pub(crate) use compare::compare;

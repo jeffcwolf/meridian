@@ -11,7 +11,7 @@ filings.xbrl.org ─▶ Python scripts ─▶ data/meridian.db ─▶ Rust/Axum 
 ## Setup
 
 ```bash
-cd scripts
+cd pipeline
 uv sync
 ```
 

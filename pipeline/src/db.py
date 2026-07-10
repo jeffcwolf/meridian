@@ -14,7 +14,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-# scripts/src/db.py -> scripts/src -> scripts -> repo root -> data/meridian.db
+# pipeline/src/db.py -> pipeline/src -> pipeline -> repo root -> data/meridian.db
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = REPO_ROOT / "data"
 DB_PATH = DATA_DIR / "meridian.db"

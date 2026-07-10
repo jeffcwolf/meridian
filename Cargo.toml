@@ -3,6 +3,9 @@ name = "meridian"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+description = "A cross-border ESEF filing explorer for European listed-company filings."
+repository = "https://github.com/jeffcwolf/meridian"
+authors = ["Jeffrey C. Wolf"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]

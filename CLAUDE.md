@@ -14,11 +14,11 @@ Hybrid Rust + Python.
 - Custom CSS — no Tailwind, no CSS frameworks. All styles hand-written in `style/`
 - The Rust app reads from cached data in `data/`. It does not call external APIs directly at runtime
 
-**Python data scripts (uv-managed, in `scripts/`):**
+**Python data scripts (uv-managed, in `pipeline/`):**
 - Fetch, parse, and cache data from external sources
 - Output to `data/` as SQLite databases or JSON files
 - Run offline / on a schedule, not at request time
-- Managed by uv — dependencies declared in `scripts/pyproject.toml`
+- Managed by uv — dependencies declared in `pipeline/pyproject.toml`
 
 **Data flow:**
 ```
@@ -34,11 +34,11 @@ External APIs → Python scripts → data/ (SQLite/JSON) → Rust/Axum reads →
 - **serde** / **serde_json** — serialisation
 - **tokio** — async runtime
 
-### Python (in `scripts/`)
+### Python (in `pipeline/`)
 - **xbrl-filings-api** — Python wrapper for filings.xbrl.org API
 - **requests** or **httpx** — HTTP calls to GLEIF, ECB (for FX rates)
 - **sqlite3** or **sqlalchemy** — writing to SQLite cache
-- Managed by **uv**. Run scripts with `cd scripts && uv run python <script>.py`
+- Managed by **uv**. Run scripts with `cd pipeline && uv run python <script>.py`
 
 ### CSS
 - Custom hand-written CSS in `style/main.css`
@@ -61,7 +61,7 @@ meridian/
 │   └── data/                # Rust modules for reading cached data
 ├── style/
 │   └── main.css
-├── scripts/
+├── pipeline/
 │   ├── pyproject.toml
 │   ├── .python-version
 │   └── src/
@@ -94,7 +94,7 @@ meridian/
 
 ```bash
 # Fetch/update data cache
-cd scripts && uv run python src/fetch_filings.py && cd ..
+cd pipeline && uv run python src/fetch_filings.py && cd ..
 
 # Run the web app
 cargo leptos watch

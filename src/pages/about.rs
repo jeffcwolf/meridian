@@ -1,3 +1,6 @@
+//! The About page: a portfolio narrative explaining what Meridian is, why it
+//! exists, and how it is built.
+
 use leptos::prelude::*;
 use leptos_meta::Title;
 

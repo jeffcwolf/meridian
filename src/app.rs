@@ -1,3 +1,6 @@
+//! The application root: the HTML document shell and the client-side router
+//! that wires each URL path to its page component.
+
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
 use leptos_router::components::{Route, Router, Routes};
@@ -32,6 +35,8 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
     }
 }
 
+/// The application root: sets up meta context, the router with a route per
+/// page, and the shared header and footer chrome.
 #[component]
 pub fn App() -> impl IntoView {
     provide_meta_context();

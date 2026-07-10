@@ -1,5 +1,7 @@
 # Meridian
 
+[![CI](https://github.com/jeffcwolf/meridian/actions/workflows/ci.yml/badge.svg)](https://github.com/jeffcwolf/meridian/actions/workflows/ci.yml)
+
 *A cross-border ESEF filing explorer. One taxonomy, 27 countries, every listed company.*
 
 Meridian is a search-and-browse interface over European listed-company filings
@@ -8,14 +10,16 @@ data from the [filings.xbrl.org](https://filings.xbrl.org) API, parses the
 XBRL-JSON extracts, and presents IFRS-tagged financial data so cross-country
 comparison is trivial. See [`SPEC.md`](SPEC.md) for the full product spec.
 
+![Meridian landing page: a company search box, feature cards for compare / coverage / data-quality / extensions, and a table of European issuers with country, filing count, and reporting years.](docs/screenshot.png)
+
 ## Architecture
 
 ```
 filings.xbrl.org ─▶ Python scripts ─▶ data/meridian.db ─▶ Rust/Axum ─▶ Leptos
 ```
 
-- **Python data scripts** (`scripts/`, uv-managed) fetch and parse data offline
-  into a SQLite cache. See [`scripts/README.md`](scripts/README.md).
+- **Python data scripts** (`pipeline/`, uv-managed) fetch and parse data offline
+  into a SQLite cache. See [`pipeline/README.md`](pipeline/README.md).
 - **Rust web app** (Leptos SSR + hydration on Axum) reads that cache and renders
   the UI. It never calls external APIs at request time.
 - **Custom CSS** in `style/main.css` — no frameworks.
@@ -32,6 +36,12 @@ The first end-to-end slice of the [SPEC](SPEC.md) build sequence:
    - **Company detail** — IFRS financial highlights across years + a filing timeline
    - **Compare** — 2–5 companies side by side for a chosen year, convertible to a common currency (EUR/USD/GBP) at ECB rates
 
+## Status
+
+Working prototype, under active development. The pages above — plus coverage,
+data-quality, and extension-tracking dashboards — run end-to-end on both offline
+demo data (`seed_demo.py`) and real filings.xbrl.org data.
+
 ## Running it
 
 Prerequisites: a recent Rust toolchain, the wasm target
@@ -42,7 +52,7 @@ bundle.
 
 ```bash
 # 1. Populate the data cache.
-cd scripts
+cd pipeline
 uv sync
 uv run python src/fetch_filings.py      # real data (needs network) …
 uv run python src/parse_xbrl_json.py    # … then parse financials …
@@ -58,6 +68,13 @@ cargo leptos watch
 
 The app reads `data/meridian.db` (override with the `MERIDIAN_DB` env var).
 
+## Testing
+
+```bash
+cargo test                    # Rust unit tests
+cd pipeline && uv run pytest  # Python pipeline tests
+```
+
 ## Layout
 
 ```
@@ -71,7 +88,7 @@ src/
 ├── data/            # rusqlite reads: reads · compare · dashboards · format (ssr)
 ├── components/      # shared UI (header, stat tile)
 └── pages/           # one module per page (each owns its server fn)
-scripts/src/         # Python data pipeline
+pipeline/src/         # Python data pipeline
 style/main.css       # hand-written CSS
 data/                # SQLite cache (gitignored)
 ```
