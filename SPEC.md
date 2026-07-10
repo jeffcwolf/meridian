@@ -15,7 +15,6 @@ The core proposition: ESEF was designed to make European financial statements co
 ## Who It's For
 
 - Analysts at EU-focused funds who need to compare companies across jurisdictions without paying for a Bloomberg terminal.
-- Anyone interviewing at or working for European financial institutions (ECB, BaFin, ESMA, national central banks) who wants to demonstrate fluency with ESEF data.
 - Researchers studying cross-border financial reporting quality under the ESEF mandate.
 
 ---
