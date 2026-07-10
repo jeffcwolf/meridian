@@ -10,6 +10,8 @@ data from the [filings.xbrl.org](https://filings.xbrl.org) API, parses the
 XBRL-JSON extracts, and presents IFRS-tagged financial data so cross-country
 comparison is trivial. See [`SPEC.md`](SPEC.md) for the full product spec.
 
+![Meridian landing page: a company search box, feature cards for compare / coverage / data-quality / extensions, and a table of European issuers with country, filing count, and reporting years.](docs/screenshot.png)
+
 ## Architecture
 
 ```
