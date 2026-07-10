@@ -65,6 +65,14 @@ pub fn App() -> impl IntoView {
                         <a href="https://filings.xbrl.org">"filings.xbrl.org"</a>
                         " ESEF index · ECB reference rates · "
                         <a href="/about">"About this project"</a>
+                        " · "
+                        <a
+                            href="https://github.com/jeffcwolf/meridian"
+                            target="_blank"
+                            rel="noopener"
+                        >
+                            "Source on GitHub"
+                        </a>
                     </p>
                     <div class="creator">
                         <span class="creator-name">"Created by Jeffrey C. Wolf"</span>

@@ -8,8 +8,17 @@ async fn main() {
     use meridian::app::{shell, App};
     use meridian::export;
 
-    let conf = leptos::config::get_configuration(None)
-        .expect("Leptos configuration is valid (from Cargo.toml metadata / env)");
+    // cargo-leptos sets the LEPTOS_* environment variables (including
+    // LEPTOS_OUTPUT_NAME); read from them when present. When the binary is run
+    // directly (e.g. `cargo run`) they are absent, so read the configuration
+    // from Cargo.toml's [package.metadata.leptos] instead of warning and
+    // falling back to defaults.
+    let conf = if std::env::var("LEPTOS_OUTPUT_NAME").is_ok() {
+        leptos::config::get_configuration(None)
+    } else {
+        leptos::config::get_configuration(Some("Cargo.toml"))
+    }
+    .expect("Leptos configuration is valid (from Cargo.toml metadata / env)");
     let addr = conf.leptos_options.site_addr;
     let leptos_options = conf.leptos_options;
     let routes = generate_route_list(App);
