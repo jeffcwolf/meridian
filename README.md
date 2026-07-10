@@ -1,5 +1,7 @@
 # Meridian
 
+[![CI](https://github.com/jeffcwolf/meridian/actions/workflows/ci.yml/badge.svg)](https://github.com/jeffcwolf/meridian/actions/workflows/ci.yml)
+
 *A cross-border ESEF filing explorer. One taxonomy, 27 countries, every listed company.*
 
 Meridian is a search-and-browse interface over European listed-company filings
@@ -32,6 +34,12 @@ The first end-to-end slice of the [SPEC](SPEC.md) build sequence:
    - **Company detail** — IFRS financial highlights across years + a filing timeline
    - **Compare** — 2–5 companies side by side for a chosen year, convertible to a common currency (EUR/USD/GBP) at ECB rates
 
+## Status
+
+Working prototype, under active development. The pages above — plus coverage,
+data-quality, and extension-tracking dashboards — run end-to-end on both offline
+demo data (`seed_demo.py`) and real filings.xbrl.org data.
+
 ## Running it
 
 Prerequisites: a recent Rust toolchain, the wasm target
@@ -57,6 +65,13 @@ cargo leptos watch
 ```
 
 The app reads `data/meridian.db` (override with the `MERIDIAN_DB` env var).
+
+## Testing
+
+```bash
+cargo test                    # Rust unit tests
+cd pipeline && uv run pytest  # Python pipeline tests
+```
 
 ## Layout
 

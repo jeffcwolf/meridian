@@ -5,10 +5,14 @@ description = "Meridian data pipeline: fetch and parse ESEF filings into the SQL
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.11"
+authors = [{ name = "Jeffrey C. Wolf" }]
 dependencies = [
     "xbrl-filings-api>=1.0",
     "httpx>=0.27",
 ]
+
+[project.urls]
+Repository = "https://github.com/jeffcwolf/meridian"
 
 [dependency-groups]
 dev = [
