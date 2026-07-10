@@ -4,7 +4,7 @@
 use leptos::prelude::*;
 use leptos_meta::Title;
 
-use crate::components::Stat;
+use crate::components::{resourced, Stat};
 use crate::model::ExtensionSummary;
 
 /// Server function backing the extension-tag tracker.
@@ -29,17 +29,7 @@ pub fn ExtensionsPage() -> impl IntoView {
             </p>
         </section>
 
-        <Suspense fallback=move || {
-            view! { <p class="muted loading">"Loading…"</p> }
-        }>
-            {move || {
-                data.get()
-                    .map(|res| match res {
-                        Ok(e) => view! { <ExtensionView e=e /> }.into_any(),
-                        Err(e) => view! { <p class="error">{e.to_string()}</p> }.into_any(),
-                    })
-            }}
-        </Suspense>
+        {resourced(data, "Loading…", |e| view! { <ExtensionView e=e /> })}
     }
 }
 

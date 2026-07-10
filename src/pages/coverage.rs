@@ -4,7 +4,7 @@
 use leptos::prelude::*;
 use leptos_meta::Title;
 
-use crate::components::Stat;
+use crate::components::{resourced, Stat};
 use crate::model::CoverageSummary;
 
 /// Server function backing the coverage map.
@@ -29,17 +29,7 @@ pub fn CoveragePage() -> impl IntoView {
             </p>
         </section>
 
-        <Suspense fallback=move || {
-            view! { <p class="muted loading">"Loading…"</p> }
-        }>
-            {move || {
-                data.get()
-                    .map(|res| match res {
-                        Ok(c) => view! { <CoverageView c=c /> }.into_any(),
-                        Err(e) => view! { <p class="error">{e.to_string()}</p> }.into_any(),
-                    })
-            }}
-        </Suspense>
+        {resourced(data, "Loading…", |c| view! { <CoverageView c=c /> })}
     }
 }
 

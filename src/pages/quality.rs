@@ -4,7 +4,7 @@
 use leptos::prelude::*;
 use leptos_meta::Title;
 
-use crate::components::Stat;
+use crate::components::{resourced, Stat};
 use crate::model::QualitySummary;
 
 /// Server function backing the data-quality dashboard.
@@ -28,17 +28,7 @@ pub fn QualityPage() -> impl IntoView {
             </p>
         </section>
 
-        <Suspense fallback=move || {
-            view! { <p class="muted loading">"Loading…"</p> }
-        }>
-            {move || {
-                data.get()
-                    .map(|res| match res {
-                        Ok(q) => view! { <QualityView q=q /> }.into_any(),
-                        Err(e) => view! { <p class="error">{e.to_string()}</p> }.into_any(),
-                    })
-            }}
-        </Suspense>
+        {resourced(data, "Loading…", |q| view! { <QualityView q=q /> })}
     }
 }
 

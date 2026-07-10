@@ -1,5 +1,5 @@
-//! Small reusable UI components shared across pages (the header and the
-//! headline-statistic tile).
+//! Small reusable UI components shared across pages: the header, the
+//! headline-statistic tile, and a `resourced` loading/error wrapper.
 
 use leptos::prelude::*;
 
@@ -20,6 +20,35 @@ pub fn Stat(
             <span class="stat-value">{value}</span>
             <span class="stat-label">{label}</span>
         </div>
+    }
+}
+
+/// Render a blocking [`Resource`] with the shared loading and error chrome: a
+/// placeholder carrying `loading` while the request is in flight, and a styled
+/// error paragraph if the server function fails. `success` renders the resolved
+/// value. Pages whose fetch has a distinct shape (an `Option` payload, a "not
+/// found" case) render their own `Suspense` instead.
+pub(crate) fn resourced<T, IV, F>(
+    resource: Resource<Result<T, ServerFnError>>,
+    loading: &'static str,
+    success: F,
+) -> impl IntoView
+where
+    T: Clone + Send + Sync + 'static,
+    IV: IntoView + 'static,
+    F: Fn(T) -> IV + Copy + Send + Sync + 'static,
+{
+    view! {
+        <Suspense fallback=move || view! { <p class="muted loading">{loading}</p> }>
+            {move || {
+                resource
+                    .get()
+                    .map(move |result| match result {
+                        Ok(value) => success(value).into_any(),
+                        Err(e) => view! { <p class="error">{e.to_string()}</p> }.into_any(),
+                    })
+            }}
+        </Suspense>
     }
 }
 
