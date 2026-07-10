@@ -250,6 +250,10 @@ main.container {
     transform: translateY(-1px);
 }
 
+.why-built {
+    margin-bottom: 1.75rem;   /* remove after testing */
+}
+
 .feature-title {
     display: block;
     font-weight: 700;

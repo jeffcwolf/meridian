@@ -52,7 +52,9 @@ pub fn SearchPage() -> impl IntoView {
             <p class="lead">
                 "ESEF tags every EU-listed annual report with the IFRS taxonomy so the numbers are
                  machine-readable across borders. Meridian pulls that data, parses it, and lets you
-                 search, compare and explore it — the comparability ESEF promised, delivered. "
+                 search, compare and explore it — the comparability ESEF
+                  promised, delivered for a curated set of ~40 large-cap issuers across 13
+                  countries. "
                 <a href="/about">"How it works →"</a>
             </p>
             <form class="search-form" method="GET" action="/">
@@ -89,7 +91,7 @@ pub fn SearchPage() -> impl IntoView {
             </a>
         </nav>
 
-        <section class="page-intro">
+        <section class="page-intro why-built">
             <h2>"Why I built this"</h2>
             <p class="lead">
                 "I've mostly worked with U.S. financial data before, where a large, unified system makes it easy to compare companies on the same footing, and I wanted to see how that holds up in the more fragmented, varied EU landscape. I also wanted to actually build something on the filings.xbrl.org API rather than just expose it. Because one core IFRS taxonomy runs across the EU, many concepts are standardised, so you should be able to compare financial statements meaningfully across borders, e.g, a Spanish IBEX company against a French CAC 40 one, while also surfacing data-quality and validation issues. Those ideas became the features you see in Meridian. Building it, and seeing that some jurisdictions (Germany, for one) aren't even present, was a concrete way for me to feel that fragmentation firsthand."
