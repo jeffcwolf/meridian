@@ -186,4 +186,64 @@ mod tests {
     fn missing_rate_yields_none() {
         assert_eq!(convert(1_000, "NOK", "EUR", "2023", &rates()), None);
     }
+
+    fn company_with_years(years: &[&str]) -> RawCompany {
+        RawCompany {
+            id: 1,
+            name: "Test".to_string(),
+            country: None,
+            lei: None,
+            currency: None,
+            years: years.iter().map(|y| y.to_string()).collect(),
+            rows: Vec::new(),
+        }
+    }
+
+    fn column_with_cells(cells: Vec<Option<String>>) -> CompareColumn {
+        CompareColumn {
+            id: 1,
+            name: "X".to_string(),
+            country: None,
+            currency: None,
+            cells,
+        }
+    }
+
+    #[test]
+    fn available_years_unions_companies_and_sorts_descending() {
+        let companies = [
+            company_with_years(&["2021", "2023"]),
+            company_with_years(&["2022", "2023"]),
+        ];
+        assert_eq!(available_years(&companies), vec!["2023", "2022", "2021"]);
+    }
+
+    #[test]
+    fn resolve_year_prefers_the_requested_year_when_present() {
+        let companies = [company_with_years(&["2021", "2022", "2023"])];
+        assert_eq!(resolve_year(&companies, Some("2022")), "2022");
+    }
+
+    #[test]
+    fn resolve_year_falls_back_to_most_recent_when_requested_is_absent() {
+        let companies = [company_with_years(&["2021", "2022"])];
+        assert_eq!(resolve_year(&companies, Some("2099")), "2022");
+        assert_eq!(resolve_year(&companies, None), "2022");
+    }
+
+    #[test]
+    fn drop_empty_rows_removes_all_none_rows_and_returns_kept_labels() {
+        // Row 0 (Revenue) has a value in one column; every other concept row is
+        // empty across all columns and must be dropped.
+        let mut revenue_only = vec![None; CONCEPTS.len()];
+        revenue_only[0] = Some("100".to_string());
+        let mut columns = [
+            column_with_cells(revenue_only),
+            column_with_cells(vec![None; CONCEPTS.len()]),
+        ];
+        let labels = drop_empty_rows(&mut columns);
+        assert_eq!(labels, vec![CONCEPTS[0].0.to_string()]);
+        assert_eq!(columns[0].cells, vec![Some("100".to_string())]);
+        assert_eq!(columns[1].cells, vec![None]);
+    }
 }

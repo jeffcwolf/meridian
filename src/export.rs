@@ -114,3 +114,29 @@ pub async fn compare_export(Path(format): Path<String>, RawQuery(query): RawQuer
         _ => (StatusCode::NOT_FOUND, "Unknown format").into_response(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn csv_field_leaves_plain_text_unquoted() {
+        assert_eq!(csv_field("Siemens AG"), "Siemens AG");
+    }
+
+    #[test]
+    fn csv_field_quotes_values_containing_a_comma() {
+        assert_eq!(csv_field("Foo, Inc"), "\"Foo, Inc\"");
+    }
+
+    #[test]
+    fn csv_field_doubles_embedded_quotes_and_wraps() {
+        assert_eq!(csv_field("a\"b"), "\"a\"\"b\"");
+    }
+
+    #[test]
+    fn csv_field_quotes_values_containing_line_breaks() {
+        assert_eq!(csv_field("line1\nline2"), "\"line1\nline2\"");
+        assert_eq!(csv_field("line1\rline2"), "\"line1\rline2\"");
+    }
+}
