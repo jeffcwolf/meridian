@@ -1,8 +1,19 @@
+//! Small reusable UI components shared across pages (the header and the
+//! headline-statistic tile).
+
 use leptos::prelude::*;
 
 /// A single headline statistic tile (used on the coverage and quality pages).
 #[component]
-pub fn Stat(label: &'static str, value: String, #[prop(optional)] warn: bool) -> impl IntoView {
+pub fn Stat(
+    /// Caption shown beneath the figure.
+    label: &'static str,
+    /// Pre-formatted figure to display.
+    value: String,
+    /// Render in the warning style (used for non-zero error counts).
+    #[prop(optional)]
+    warn: bool,
+) -> impl IntoView {
     let class = if warn { "stat stat-warn" } else { "stat" };
     view! {
         <div class=class>

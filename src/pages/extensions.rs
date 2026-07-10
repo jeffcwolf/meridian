@@ -1,3 +1,6 @@
+//! The extension-tag tracker: company-specific taxonomy extensions, grouped by
+//! issuer and by concept.
+
 use leptos::prelude::*;
 use leptos_meta::Title;
 
@@ -10,6 +13,7 @@ pub async fn extension_data() -> Result<ExtensionSummary, ServerFnError> {
     crate::data::extension_summary().map_err(|e| ServerFnError::new(e.to_string()))
 }
 
+/// Extensions page: renders extension usage by issuer and by concept.
 #[component]
 pub fn ExtensionsPage() -> impl IntoView {
     let data = Resource::new_blocking(|| (), |_| async { extension_data().await });

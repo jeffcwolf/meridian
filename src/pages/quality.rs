@@ -1,3 +1,6 @@
+//! The data-quality dashboard: validation-message counts (errors, warnings,
+//! inconsistencies) across filings, by country.
+
 use leptos::prelude::*;
 use leptos_meta::Title;
 
@@ -10,6 +13,7 @@ pub async fn quality_data() -> Result<QualitySummary, ServerFnError> {
     crate::data::quality_summary().map_err(|e| ServerFnError::new(e.to_string()))
 }
 
+/// Data-quality page: renders validation-message counts by country.
 #[component]
 pub fn QualityPage() -> impl IntoView {
     let data = Resource::new_blocking(|| (), |_| async { quality_data().await });

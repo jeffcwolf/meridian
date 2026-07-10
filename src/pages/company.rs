@@ -1,3 +1,6 @@
+//! The company detail page: one issuer's financials (IFRS concept rows ×
+//! reporting years) and its filing timeline.
+
 use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::hooks::use_params_map;
@@ -6,10 +9,15 @@ use crate::model::CompanyDetail;
 
 /// Server function backing the company detail page.
 #[server(FetchCompany)]
-pub async fn company_detail(id: i64) -> Result<Option<CompanyDetail>, ServerFnError> {
+pub async fn company_detail(
+    /// Entity row id of the company to load.
+    id: i64,
+) -> Result<Option<CompanyDetail>, ServerFnError> {
     crate::data::load_company(id).map_err(|e| ServerFnError::new(e.to_string()))
 }
 
+/// Company detail page: reads the `:id` route param and renders the issuer's
+/// financials and filing timeline.
 #[component]
 pub fn CompanyPage() -> impl IntoView {
     let params = use_params_map();

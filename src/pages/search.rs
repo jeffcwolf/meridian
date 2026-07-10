@@ -1,3 +1,6 @@
+//! The search page: a company-name search over the cached universe, backed by
+//! the [`search_companies`] server function.
+
 use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::hooks::use_query_map;
@@ -7,7 +10,10 @@ use crate::model::CompanySummary;
 /// Server function backing the search page. Runs the SQLite read on the server;
 /// on the client it is a network call.
 #[server(SearchCompanies)]
-pub async fn search_companies(q: Option<String>) -> Result<Vec<CompanySummary>, ServerFnError> {
+pub async fn search_companies(
+    /// Free-text query; matches company name substrings. `None` lists everything.
+    q: Option<String>,
+) -> Result<Vec<CompanySummary>, ServerFnError> {
     let q = q.and_then(|s| {
         let t = s.trim().to_string();
         if t.is_empty() {
@@ -19,6 +25,7 @@ pub async fn search_companies(q: Option<String>) -> Result<Vec<CompanySummary>, 
     crate::data::list_companies(q.as_deref()).map_err(|e| ServerFnError::new(e.to_string()))
 }
 
+/// Search page: a text box plus the results table of matching companies.
 #[component]
 pub fn SearchPage() -> impl IntoView {
     let query = use_query_map();

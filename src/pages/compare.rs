@@ -1,3 +1,6 @@
+//! The cross-country comparator: headline IFRS figures for two or more
+//! companies side by side, optionally converted to a common currency.
+
 use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::hooks::use_location;
@@ -9,8 +12,11 @@ use crate::pages::search::search_companies;
 /// companies (nothing to compare yet).
 #[server(CompareData)]
 pub async fn compare_data(
+    /// Entity row ids of the companies to compare (two or more).
     ids: Vec<i64>,
+    /// Fiscal year to show (`YYYY`); defaults to the latest shared year.
     fy: Option<String>,
+    /// ISO 4217 code to convert all figures to, or `None` to show native currency.
     base: Option<String>,
 ) -> Result<Option<CompareTable>, ServerFnError> {
     if ids.len() < 2 {
@@ -31,6 +37,8 @@ const BASE_OPTIONS: [(&str, &str); 4] = [
 
 use crate::query::{parse_ids, parse_param};
 
+/// Comparator page: reads the selected company ids, fiscal year, and base
+/// currency from the query string and renders the side-by-side table.
 #[component]
 pub fn ComparePage() -> impl IntoView {
     let location = use_location();

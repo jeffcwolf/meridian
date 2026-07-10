@@ -1,3 +1,6 @@
+//! The coverage map: how many entities and filings are cached per jurisdiction,
+//! and which jurisdictions the index omits.
+
 use leptos::prelude::*;
 use leptos_meta::Title;
 
@@ -10,6 +13,7 @@ pub async fn coverage_data() -> Result<CoverageSummary, ServerFnError> {
     crate::data::coverage().map_err(|e| ServerFnError::new(e.to_string()))
 }
 
+/// Coverage page: renders the per-country coverage table and summary tiles.
 #[component]
 pub fn CoveragePage() -> impl IntoView {
     let data = Resource::new_blocking(|| (), |_| async { coverage_data().await });
