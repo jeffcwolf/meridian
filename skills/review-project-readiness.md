@@ -98,10 +98,14 @@ jobs:
       - run: cargo fmt --check
       - run: cargo clippy --workspace -- -D warnings
       - run: cargo test --workspace
-      - run: RUSTDOCFLAGS="-D missing_docs" cargo doc --no-deps --workspace
+      # Doc correctness (broken intra-doc links, doctests). Library crates that
+      # require a doc comment on every public item append `-D missing_docs`.
+      - run: RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --workspace
 
   python:
     runs-on: ubuntu-latest
+    # If the uv project lives in a subfolder (e.g. pipeline/), scope the run
+    # steps to it: defaults: { run: { working-directory: pipeline } }
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4
@@ -121,7 +125,7 @@ For Rust-only or Python-only projects, use the single-language templates in
 - [ ] Test suite (`cargo test` / `uv run pytest`)
 
 **What CI should include (if the project warrants it):**
-- [ ] Doc build with warnings as errors (`RUSTDOCFLAGS="-D missing_docs"`)
+- [ ] Doc presence enforced for library crates (`RUSTDOCFLAGS="-D warnings -D missing_docs"`)
 - [ ] Security audit (`cargo audit` / `uv run pip-audit`)
 - [ ] Type checking for Python (`uv run mypy --strict` or `pyright`)
 

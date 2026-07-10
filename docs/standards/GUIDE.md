@@ -371,7 +371,7 @@ These standards are not advisory. Each layer is enforced at multiple points:
 | ARC names | Post-session (every session) | `naming-review` skill — enumeration of every new name |
 | ARC expression | Refactor Pass 3 (every session) | Agent applies control flow and comment rules |
 | ARC expression | Post-session (every session) | `review-docs` skill — doc coverage and quality |
-| ARC expression | Continuous | `RUSTDOCFLAGS="-D missing_docs" cargo doc` enforces doc presence |
+| ARC expression | Continuous | `RUSTDOCFLAGS="-D warnings" cargo doc` enforces doc correctness (broken links, doctests); library crates add `-D missing_docs` for presence |
 | Rust-specifics | Refactor (every session) | Agent applies Rust Standards Checklist |
 | Rust-specifics | Continuous | `cargo clippy -- -D warnings`; `prism check --strict` (pub_ratio, complexity) |
 
