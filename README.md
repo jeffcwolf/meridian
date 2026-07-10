@@ -14,8 +14,8 @@ comparison is trivial. See [`SPEC.md`](SPEC.md) for the full product spec.
 filings.xbrl.org ─▶ Python scripts ─▶ data/meridian.db ─▶ Rust/Axum ─▶ Leptos
 ```
 
-- **Python data scripts** (`scripts/`, uv-managed) fetch and parse data offline
-  into a SQLite cache. See [`scripts/README.md`](scripts/README.md).
+- **Python data scripts** (`pipeline/`, uv-managed) fetch and parse data offline
+  into a SQLite cache. See [`pipeline/README.md`](pipeline/README.md).
 - **Rust web app** (Leptos SSR + hydration on Axum) reads that cache and renders
   the UI. It never calls external APIs at request time.
 - **Custom CSS** in `style/main.css` — no frameworks.
@@ -42,7 +42,7 @@ bundle.
 
 ```bash
 # 1. Populate the data cache.
-cd scripts
+cd pipeline
 uv sync
 uv run python src/fetch_filings.py      # real data (needs network) …
 uv run python src/parse_xbrl_json.py    # … then parse financials …
@@ -71,7 +71,7 @@ src/
 ├── data/            # rusqlite reads: reads · compare · dashboards · format (ssr)
 ├── components/      # shared UI (header, stat tile)
 └── pages/           # one module per page (each owns its server fn)
-scripts/src/         # Python data pipeline
+pipeline/src/         # Python data pipeline
 style/main.css       # hand-written CSS
 data/                # SQLite cache (gitignored)
 ```

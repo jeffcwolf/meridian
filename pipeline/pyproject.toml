@@ -1,5 +1,5 @@
 [project]
-name = "meridian-scripts"
+name = "meridian-pipeline"
 version = "0.1.0"
 description = "Meridian data pipeline: fetch and parse ESEF filings into the SQLite cache"
 license = "MIT"

@@ -15,7 +15,7 @@ __pycache__/
 .eggs/
 build/
 .venv/
-**/.venv/                  # venvs in subprojects (e.g. scripts/.venv)
+**/.venv/                  # venvs in subprojects (e.g. pipeline/.venv)
 # uv.lock: COMMIT it (reproducible environments) — do NOT ignore.
 
 # Python tool caches

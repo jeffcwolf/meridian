@@ -5,7 +5,7 @@ first fetching from filings.xbrl.org. The figures are illustrative, hand-entered
 approximations of published annual reports — NOT authoritative. Run the real
 pipeline (``fetch_filings.py`` + ``parse_xbrl_json.py``) for accurate data.
 
-    cd scripts && uv run python src/seed_demo.py
+    cd pipeline && uv run python src/seed_demo.py
 """
 
 from __future__ import annotations

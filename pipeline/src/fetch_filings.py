@@ -6,7 +6,7 @@ Pipeline step 1: populate the ``entities`` and ``filings`` tables in
 
 Run locally (needs outbound access to filings.xbrl.org):
 
-    cd scripts && uv run python src/fetch_filings.py
+    cd pipeline && uv run python src/fetch_filings.py
 
 Resolution strategy: rather than resolving names through GLEIF (whose
 full-text ranking surfaces subsidiaries and misses parents), we scan each

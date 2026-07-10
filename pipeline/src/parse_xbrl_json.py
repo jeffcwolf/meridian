@@ -6,7 +6,7 @@ handful of headline IFRS concepts into the ``financial_facts`` table.
 
 Run locally (needs outbound access to filings.xbrl.org):
 
-    cd scripts && uv run python src/parse_xbrl_json.py
+    cd pipeline && uv run python src/parse_xbrl_json.py
 
 The script is idempotent — re-running refreshes the same facts.
 """

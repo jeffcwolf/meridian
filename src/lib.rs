@@ -2,8 +2,8 @@
 //!
 //! This crate is the Leptos + Axum web application. It renders the UI (SSR with
 //! client-side hydration) and, in the `ssr` build, reads pre-cached filing data
-//! from the SQLite database produced by the Python pipeline in `scripts/`. It
-//! does not call external APIs at request time.
+//! from the SQLite database produced by the Python data pipeline (`pipeline/`).
+//! It does not call external APIs at request time.
 //!
 //! The module tree splits into UI ([`app`], [`components`], [`pages`]), the
 //! serialisable types that cross the server-function boundary ([`model`]), and

@@ -42,14 +42,14 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        # The uv project lives in scripts/, not the repo root.
-        working-directory: scripts
+        # The uv project lives in pipeline/, not the repo root.
+        working-directory: pipeline
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
-          cache-dependency-glob: scripts/uv.lock
+          cache-dependency-glob: pipeline/uv.lock
       - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run ruff format --check .
