@@ -1,12 +1,12 @@
-# standards/ousterhout.md
+# docs/standards/ousterhout.md
 # A Philosophy of Software Design — Executable Rules
 
 > **Source:** John Ousterhout, *A Philosophy of Software Design* (2nd ed.)  
 > **Scope:** Design-level rules — modules, interfaces, abstractions, APIs.  
 > **Usage:** Load this file when designing a new module, reviewing an existing one,
 > or auditing code after a session. For expression-level rules (naming, comments,
-> control flow), see `standards/readable-code.md`. For Rust-specific applications,
-> see `standards/rust-specifics.md`.
+> control flow), see `docs/standards/readable-code.md`. For Rust-specific applications,
+> see `docs/standards/rust-specifics.md`.
 >
 > **Format:** Each rule has a definition, a detection method, a Rust violation, and
 > a Rust correction. The Red Flags section follows the same format. A Red Flag is a

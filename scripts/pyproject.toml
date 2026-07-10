@@ -2,6 +2,7 @@
 name = "meridian-scripts"
 version = "0.1.0"
 description = "Meridian data pipeline: fetch and parse ESEF filings into the SQLite cache"
+license = "MIT"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

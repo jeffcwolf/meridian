@@ -9,7 +9,7 @@
 > reference — structured for agents to load and apply mechanically. This guide is for
 > humans who want to understand the philosophy before reading the rules.
 >
-> **Location:** `livery/standards/GUIDE.md`
+> **Location:** `docs/standards/GUIDE.md`
 
 ---
 
@@ -384,5 +384,5 @@ non-negotiable.
 ---
 
 *This guide covers the three standards files as of Livery v1.0. For the rationale
-behind choosing these sources over alternatives, see `livery/docs/design-philosophy.md`
-and `livery/docs/naming-approach.md`.*
+behind choosing these sources over alternatives, see the original Livery project
+for the original design rationale.*

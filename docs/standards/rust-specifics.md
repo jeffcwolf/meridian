@@ -1,8 +1,8 @@
-# standards/rust-specifics.md
+# docs/standards/rust-specifics.md
 # Rust-Specific Design Standards
 
-> **Scope:** Rust language applications of the principles in `ousterhout.md` and
-> `readable-code.md`. This file does not repeat those principles — it shows how they
+> **Scope:** Rust language applications of the principles in `docs/standards/ousterhout.md` and
+> `docs/standards/readable-code.md`. This file does not repeat those principles — it shows how they
 > manifest in Rust idioms and what Rust-specific violations look like.  
 > **Usage:** Load this file for all Rust implementation work, alongside whichever of
 > the parent standards files is relevant to the task.
@@ -21,7 +21,7 @@ first-line tool before runtime validation or documentation.
 
 A newtype is only justified if it enforces an invariant, restricts an interface, or
 makes distinct things that share a representation distinguishable. A newtype that adds
-no constraint is a Shallow Module (see `ousterhout.md`).
+no constraint is a Shallow Module (see `docs/standards/ousterhout.md`).
 
 ```rust
 // UNJUSTIFIED: wraps String, adds nothing
@@ -101,7 +101,7 @@ external data.
 
 ### Rule: Prefer Enums Over Boolean Parameters
 
-A boolean parameter at a call site is a Nonobvious Code smell (see `ousterhout.md`).
+A boolean parameter at a call site is a Nonobvious Code smell (see `docs/standards/ousterhout.md`).
 The reader sees `true` or `false` with no context. An enum is self-documenting at the
 call site.
 
@@ -343,7 +343,7 @@ pub fn build_archive(config: &ArchiveConfig) -> Result<ArchiveBundle, ArchiveErr
 
 ## Part IV — Naming Conventions (Rust-Specific)
 
-These extend the general naming rules in `readable-code.md` with Rust-specific patterns.
+These extend the general naming rules in `docs/standards/readable-code.md` with Rust-specific patterns.
 
 ---
 

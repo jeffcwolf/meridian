@@ -1,4 +1,4 @@
-# standards/readable-code.md
+# docs/standards/readable-code.md
 # The Art of Readable Code — Executable Rules
 
 > **Source:** Dustin Boswell & Trevor Foucher, *The Art of Readable Code* (2011)  
@@ -8,7 +8,7 @@
 > **Compatibility:** Fully compatible with Ousterhout's APOSD. Where APOSD asks
 > "is the structure right?", this book asks "is the surface right?" Both are required.  
 > **Usage:** Load this file when reviewing names, writing or reviewing comments, or
-> simplifying control flow. For design-level rules, see `standards/ousterhout.md`.
+> simplifying control flow. For design-level rules, see `docs/standards/ousterhout.md`.
 
 ---
 
@@ -544,7 +544,7 @@ diagnostic:
 - ARC: *"If you cannot find a clear, precise name for a function, the function is
   doing too much."*
 
-They are the same observation from different angles. Load `standards/ousterhout.md`
+They are the same observation from different angles. Load `docs/standards/ousterhout.md`
 when naming is difficult — the Red Flag section will identify which design problem
 is causing the naming difficulty.
 
@@ -555,7 +555,7 @@ is causing the naming difficulty.
 In the Refactor phase, when you encounter a name you cannot improve:
 
 1. Write the one-sentence description of what the item does
-2. If it contains "and" → go to `standards/ousterhout.md` and split
+2. If it contains "and" → go to `docs/standards/ousterhout.md` and split
 3. If it contains only vague words → ask "what exactly does this hide?" (deep-module
    test); if the answer is "not much," delete the abstraction
 4. If the description is clear but no single word captures it → the item may be
@@ -578,7 +578,7 @@ Apply before finalising any function, type, or module for a session.
 - [ ] Have you replaced any of these words: `get`, `process`, `handle`, `data`, `info`,
   `item`, `flag`, `check`, `manager`, `helper`, `utils`?
 - [ ] Was any name difficult to choose? If yes — was that difficulty a design signal?
-  Did you consult `standards/ousterhout.md` before settling on the name?
+  Did you consult `docs/standards/ousterhout.md` before settling on the name?
 
 **Comments:**
 - [ ] Does every comment say *why*, not *what*?
