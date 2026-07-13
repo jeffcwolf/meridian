@@ -78,14 +78,50 @@ log "Pushing ${IMAGE}:${GIT_SHA}"
 docker push "${IMAGE}:${GIT_SHA}"
 
 # --- Roll only this service on the server -----------------------------------
-# Pulls the new :latest for this service and recreates just its container.
-# Caddy and every other site in the stack are untouched.
+# Pull the new :latest for THIS service and recreate just its container; Caddy
+# and every other site in the stack are left untouched. On the very FIRST deploy
+# the stack does not know this service yet, so compose errors "no such service".
+# That is expected, not a failure: the image is already pushed — you now wire the
+# service + Caddy block into scaleway-infra and deploy THAT to start it.
 log "Rolling '${APP}' on ${HOST} …"
-ssh "${HOST}" "cd ${STACK_DIR} && docker compose pull ${APP} && docker compose up -d ${APP}"
+set +e
+roll_out="$(ssh "${HOST}" "cd ${STACK_DIR} && docker compose pull ${APP} && docker compose up -d ${APP}" 2>&1)"
+roll_rc=$?
+set -e
+if [ -n "${roll_out}" ]; then printf '%s\n' "${roll_out}"; fi
+
+if [ "${roll_rc}" -ne 0 ]; then
+  if printf '%s' "${roll_out}" | grep -qi "no such service"; then
+    cat <<EOF
+
+────────────────────────────────────────────────────────────────────────
+First-deploy bootstrap: the image is pushed, but the stack has no '${APP}'
+service yet, so the roll was skipped (this is expected — not an error).
+
+  Pushed: ${IMAGE}:${TAG}
+          ${IMAGE}:${GIT_SHA}
+
+Next:
+  1. Add the '${APP}' service block + Caddy block to scaleway-infra.
+  2. Run scaleway-infra's deploy.sh — that starts the container (image now
+     exists) and reloads Caddy. ${URL} goes live there.
+After that, this script alone handles build → push → roll on every deploy.
+────────────────────────────────────────────────────────────────────────
+EOF
+    exit 0
+  fi
+  die "roll failed on ${HOST} (see compose output above)."
+fi
 
 # --- Done -------------------------------------------------------------------
-log "Deployed ${APP} @ ${GIT_SHA}"
-printf '\n  Live:   %s\n' "${URL}"
-printf '  Verify: curl -sI %s\n\n' "${URL}"
-# Best-effort smoke check (never fails the deploy).
-curl -sI --max-time 10 "${URL}" || printf '  (verify request did not return yet — give Caddy a moment for TLS, then retry)\n\n'
+# The container is rolled — but rolling it is NOT the same as serving the URL.
+# meridian.discrepancies.eu only resolves once scaleway-infra's Caddy block for
+# this app is deployed (that reload is what routes the subdomain to :3000).
+log "Rolled '${APP}' @ ${GIT_SHA} on ${HOST}"
+printf '\n  Pushed:  %s  (also :%s)\n' "${IMAGE}:${TAG}" "${GIT_SHA}"
+printf '  URL:     %s\n' "${URL}"
+printf '           serves only after scaleway-infra deploys its Caddy block for %s.\n' "${APP}"
+printf '  Verify:  curl -sI %s\n\n' "${URL}"
+# Best-effort smoke check — never fails the deploy. No response is normal until
+# Caddy is wired for this app, or while first-use TLS issuance is still settling.
+curl -sI --max-time 10 "${URL}" || printf '  (no response yet — normal until Caddy routes %s, or while TLS is issuing)\n\n' "${APP}"
