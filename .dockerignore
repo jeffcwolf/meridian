@@ -1,0 +1,22 @@
+# Keep the build context small and reproducible. The image builds from source,
+# so ship only source — never the local build artifacts or generated caches.
+.git
+.github
+/target
+**/target
+**/.venv
+pipeline/.venv
+__pycache__
+**/__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.mypy_cache
+# Generated data caches: the image bakes its own DB (see Dockerfile stage 2).
+data/*.db
+data/*.sqlite
+data/*.json
+# Editor / OS cruft
+.DS_Store
+._*
+*.swp
